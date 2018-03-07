@@ -47,7 +47,7 @@ void setup_opengl_settings()
 	glDepthFunc(GL_LEQUAL);
 	// Set polygon drawing mode to fill front and back of each polygon
 	// You can also use the paramter of GL_LINE instead of GL_FILL to see wireframes
-	glPolygonMode(GL_FRONT, GL_FILL);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	// Disable backface culling to render both sides of polygons
 	glEnable(GL_CULL_FACE);
   glCullFace(GL_BACK);

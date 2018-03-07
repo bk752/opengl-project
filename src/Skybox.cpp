@@ -97,8 +97,6 @@ void Skybox::draw() {
 	glDrawArrays(GL_TRIANGLES, 0, 36);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
-
-	glDepthFunc(GL_LESS); // set depth function back to default
 }
 
 unsigned int Skybox::loadCubemap(std::vector<std::string> faces)

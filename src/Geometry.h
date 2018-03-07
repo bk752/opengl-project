@@ -24,13 +24,12 @@
 class Geometry : public Node
 {
 private:
-  //std::vector<unsigned int> indices;
   glm::vec3 normal;
   glm::vec3 origin;
   float angle;
 
 public:
-	Geometry(std::string, glm::vec3, glm::vec3, glm::vec3, float, GLuint, bool);
+	Geometry(std::string, glm::vec3, glm::vec3, glm::vec3, float, GLuint, GLuint, GLuint, bool);
 	~Geometry();
 
 	void drawModel();
@@ -47,6 +46,9 @@ public:
 	glm::vec3 specular;
 	float phongExp;
 	GLuint shader;
+	GLuint shadowShader;
+	GLuint depthShader;
+	GLuint ambianceShader;
 
 	glm::vec3 position;
 	glm::vec3 scale;
@@ -65,6 +67,10 @@ public:
 	GLuint uPointLightPos, uPointLightColor, uPointLightAtten;
 	GLuint uSpotLightPos, uSpotLightDir, uSpotLightColor, uSpotLightDrop, uSpotLightMinDot;
 	GLuint uShowSpot, uShowDir, uShowPoint;
+
+	GLuint uShadowModel, uShadowViewProject, uShadowLightPos;
+
+	GLuint uDepthTransform;
 };
 
 #endif

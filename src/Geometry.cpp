@@ -3,7 +3,7 @@
 #include <cmath>
 #include <algorithm>
 
-Geometry::Geometry(std::string name, glm::vec3 diff, glm::vec3 amb, glm::vec3 spec, float phong, GLuint program, bool adjacent) 
+Geometry::Geometry(std::string name, glm::vec3 diff, glm::vec3 amb, glm::vec3 spec, float phong, GLuint program, GLuint shadow, GLuint depth, bool adjacent) 
 {
 	toWorld = glm::mat4(1.0f);
 
@@ -14,7 +14,6 @@ Geometry::Geometry(std::string name, glm::vec3 diff, glm::vec3 amb, glm::vec3 sp
 	this->ambient = amb;
 	this->specular = spec;
 	this->phongExp = phong;
-	this->shader = program;
 
 
 	glGenVertexArrays(1, &VAO);
@@ -48,6 +47,8 @@ Geometry::Geometry(std::string name, glm::vec3 diff, glm::vec3 amb, glm::vec3 sp
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(GLuint), &faces[0], GL_STATIC_DRAW);
 
+	this->shader = program;
+
 	uProjection = glGetUniformLocation(shader, "projection");
 	uModelview = glGetUniformLocation(shader, "modelview");
 	uModel = glGetUniformLocation(shader, "model");
@@ -71,6 +72,14 @@ Geometry::Geometry(std::string name, glm::vec3 diff, glm::vec3 amb, glm::vec3 sp
 	uSpotLightColor = glGetUniformLocation(shader, "spotLight.color");
 	uSpotLightDrop = glGetUniformLocation(shader, "spotLight.dropoff");
 	uSpotLightMinDot = glGetUniformLocation(shader, "spotLight.minDot");
+
+	this->shadowShader = shadow;
+	uShadowModel = glGetUniformLocation(shadowShader, "model");
+	uShadowViewProject = glGetUniformLocation(shadowShader, "viewproject");
+	uShadowLightPos = glGetUniformLocation(shadowShader, "lightPos");
+
+	this->depthShader = depth;
+	uDepthTransform = glGetUniformLocation(depthShader, "transform");
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
@@ -180,7 +189,15 @@ void Geometry::parse(std::string name)
 
 void Geometry::draw(glm::mat4 c) {
 	this->toWorld = c;
-	drawModel();
+	GLint program = 0;
+	glGetIntegerv(GL_CURRENT_PROGRAM, &program);
+	if ((GLuint)program == shader) {
+		drawModel();
+	} else if ((GLuint)program == shadowShader) {
+		drawShadow();
+	} else if ((GLuint)program == depthShader) {
+		drawDepth();
+	}
 } 
 
 void Geometry::drawModel() 
@@ -236,13 +253,32 @@ void Geometry::drawModel()
 		glDrawElements(GL_TRIANGLES, faces.size(), GL_UNSIGNED_INT, 0);
 	}
 	glBindVertexArray(0);
-	glEnd();
 }
 
 void Geometry::drawShadow() {
+	if (storeAdjacent) {
+		glm::mat4 viewproject = Window::P * Window::V;
+		glUniformMatrix4fv(uProjection, 1, GL_FALSE, &Window::P[0][0]);
+		glUniformMatrix4fv(uShadowViewProject, 1, GL_FALSE, &viewproject[0][0]);
+		glUniformMatrix4fv(uShadowModel, 1, GL_FALSE, &toWorld[0][0]);
+		glUniform3fv(uShadowLightPos, 1, &Window::point.position[0]);
 
+		glBindVertexArray(VAO);
+		glDrawElements(GL_TRIANGLES_ADJACENCY, faces.size(), GL_UNSIGNED_INT, 0);
+		glBindVertexArray(0);
+	}
 }
 
 void Geometry::drawDepth() {
+	glm::mat4 mvp = Window::P * Window::V * toWorld;
+	glUniformMatrix4fv(uDepthTransform, 1, GL_FALSE, &mvp[0][0]);
 
+	glBindVertexArray(VAO);
+
+	if (storeAdjacent) {
+		glDrawElements(GL_TRIANGLES_ADJACENCY, faces.size(), GL_UNSIGNED_INT, 0);
+	} else {
+		glDrawElements(GL_TRIANGLES, faces.size(), GL_UNSIGNED_INT, 0);
+	}
+	glBindVertexArray(0);
 }

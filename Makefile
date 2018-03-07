@@ -8,7 +8,8 @@ RESOURCEDIR = res
 
 VERTSHADERS := $(wildcard $(SOURCEDIR)/*.vert)
 FRAGSHADERS := $(wildcard $(SOURCEDIR)/*.frag)
-BUILDSHADERS := $(VERTSHADERS:$(SOURCEDIR)/%.vert=$(BUILDDIR)/%.vert) $(FRAGSHADERS:$(SOURCEDIR)/%.frag=$(BUILDDIR)/%.frag)
+GEOMSHADERS := $(wildcard $(SOURCEDIR)/*.geom)
+BUILDSHADERS := $(VERTSHADERS:$(SOURCEDIR)/%.vert=$(BUILDDIR)/%.vert) $(FRAGSHADERS:$(SOURCEDIR)/%.frag=$(BUILDDIR)/%.frag) $(GEOMSHADERS:$(SOURCEDIR)/%.geom=$(BUILDDIR)/%.geom)
 
 SOURCEOBJ := $(wildcard $(SOURCEDIR)/*.obj)
 BUILDOBJ := $(SOURCEOBJ:$(SOURCEDIR)/%.obj=$(BUILDDIR)/%.obj)
@@ -44,6 +45,9 @@ $(BUILDDIR)/%.vert: $(SOURCEDIR)/%.vert
 	@ln -s ../$< $@
 
 $(BUILDDIR)/%.frag: $(SOURCEDIR)/%.frag
+	@ln -s ../$< $@
+
+$(BUILDDIR)/%.geom: $(SOURCEDIR)/%.geom
 	@ln -s ../$< $@
 
 $(BUILDDIR)/$(RESOURCEDIR): $(RESOURCEDIR)

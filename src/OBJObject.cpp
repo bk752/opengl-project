@@ -209,7 +209,6 @@ void OBJObject::draw(GLuint shaderProgram)
 
 	glDrawElements(GL_TRIANGLES, 3*faces.size(), GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
-	glEnd();
 }
 
 void OBJObject::update()

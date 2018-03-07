@@ -5,14 +5,15 @@
 #include "Geometry.h"
 #include "Bezier.h"
 #include "Skybox.h"
-#include <algorithm>
 const char* window_title = "GLFW Starter Project";
 OBJObject *dragon;
 OBJObject *bunny;
 OBJObject *bear;
 OBJObject *cone;
 OBJObject *sphere;
-GLint shaderProgram;
+GLint mainShader;
+GLint shadowShader;
+GLint depthShader;
 GLint lineShader;
 OBJObject *current;
 Transform *sceneGraph;
@@ -25,6 +26,13 @@ Skybox *skybox;
 
 #define VERTEX_LINE_PATH "line.vert"
 #define FRAGMENT_LINE_PATH "line.frag"
+
+#define VERTEX_SHADOW_PATH "shadow.vert"
+#define FRAGMENT_SHADOW_PATH "shadow.frag"
+#define GEOMETRY_SHADOW_PATH "shadow.geom"
+
+#define VERTEX_DEPTH_PATH "depth.vert"
+#define FRAGMENT_DEPTH_PATH "depth.frag"
 
 // Default camera parameters
 glm::vec3 cam_pos(0.0f, 0.0f, 20.0f);		// e	| Position of camera
@@ -56,7 +64,7 @@ float moveVel = 0.4f;
 //float moveVel = 0.2f;
 float curveTime = 0;
 float limbAng = 0;
-int robotRad = 2;
+int robotRad = 1;
 
 std::vector<std::string> skyFaces = {
 	"res/right.jpg",
@@ -123,13 +131,15 @@ void Window::initialize_objects()
 	current = bunny;
 
 	// Load the shader program. Make sure you have the correct filepath up top
-	shaderProgram = LoadShaders(VERTEX_SHADER_PATH, FRAGMENT_SHADER_PATH);
+	mainShader = LoadShaders(VERTEX_SHADER_PATH, FRAGMENT_SHADER_PATH);
+	shadowShader = LoadShaders(VERTEX_SHADOW_PATH, FRAGMENT_SHADOW_PATH, GEOMETRY_SHADOW_PATH);
+	depthShader = LoadShaders(VERTEX_DEPTH_PATH, FRAGMENT_DEPTH_PATH);
 	lineShader = LoadShaders(VERTEX_LINE_PATH, FRAGMENT_LINE_PATH);
 
 	Transform *robot = new Transform(glm::rotate(glm::mat4(1.0f), glm::half_pi<float>(), glm::vec3(1, 0, 0)));
-	robot->addChild(new Geometry("res/robot-parts/body.obj", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, shaderProgram, false));
+	robot->addChild(new Geometry("res/robot-parts/body.obj", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, mainShader, shadowShader, depthShader, true));
 
-	Geometry *limb = new Geometry("res/robot-parts/head.obj", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, shaderProgram, false);
+	Geometry *limb = new Geometry("res/robot-parts/head.obj", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, mainShader, shadowShader, depthShader, false);
 	Transform *temp = new Transform(glm::rotate(glm::rotate(
 					glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, -1.6)),
 					glm::pi<float>(), glm::vec3(1, 0, 0)),
@@ -140,7 +150,7 @@ void Window::initialize_objects()
 	neckAnim->addChild(limb);
 
 	limb = new Geometry("res/robot-parts/antenna.obj", glm::vec3(0.0f, 0.0f, 0.0f),
-			glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, shaderProgram, false);
+			glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, mainShader, shadowShader, depthShader, false);
 	Transform *temp2 = new Transform(glm::scale(glm::translate(glm::mat4(1.0f),
 					glm::vec3(-0.5f, 0, 0.5f)), glm::vec3(0.3f, 0.3f, 0.3f)));
 	neckAnim->addChild(temp2);
@@ -150,7 +160,7 @@ void Window::initialize_objects()
 	neckAnim->addChild(temp3);
 	temp3->addChild(temp2);
 
-	limb = new Geometry("res/robot-parts/eyeball.obj", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, shaderProgram, false);
+	limb = new Geometry("res/robot-parts/eyeball.obj", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, mainShader, shadowShader, depthShader, false);
 	temp3 = new Transform(glm::rotate(glm::mat4(1.0f), glm::pi<float>(), glm::vec3(0, 0, 1)));
 	temp2 = new Transform(glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3(-0.35f, 0.8f, -0.1f)), glm::vec3(0.2f, 0.2f, 0.2f)));
 	neckAnim->addChild(temp2);
@@ -161,7 +171,7 @@ void Window::initialize_objects()
 	neckAnim->addChild(temp2);
 	temp2->addChild(temp3);
 
-	limb = new Geometry("res/robot-parts/limb.obj", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, shaderProgram, false);
+	limb = new Geometry("res/robot-parts/limb.obj", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, mainShader, shadowShader, depthShader, false);
 	temp = new Transform(glm::translate(glm::mat4(1.0f), glm::vec3(1.3, 0, -0.8)));
 	robot->addChild(temp);
 	limbAnim = new Transform(glm::rotate(glm::mat4(1.0f), 0.0f, glm::vec3(1, 0, 0)));
@@ -186,15 +196,14 @@ void Window::initialize_objects()
 
 	sceneGraph = new Transform(glm::mat4(1.0f));
 
+	Geometry *box = new Geometry("res/cube.obj", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, mainShader, shadowShader, depthShader, true);
 	Transform *robRow = new Transform(glm::mat4(1.0f));
-	robRow->addChild(robot);
 	for (int i = -robotRad; i <= robotRad; i++) {
 		Transform *robTrans = new Transform(glm::mat4(glm::translate(glm::mat4(1.0f), glm::vec3(4.0f * i, 0, 0))));
-		robTrans->addChild(robot);
+		//robTrans->addChild(robot);
+		robTrans->addChild(box);
 		robRow->addChild(robTrans);
 	}
-
-	sceneGraph->addChild(robRow);
 
 	for (int i = -robotRad; i <= robotRad; i++) {
 		Transform *robTrans = new Transform(glm::mat4(glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 4.0f * i))));
@@ -237,8 +246,8 @@ void Window::clean_up()
 	delete(bunny);
 	delete(dragon);
 	delete(bear);
-	glDeleteProgram(shaderProgram);
-	glDeleteProgram(lineShader);
+	glDeleteShader(mainShader);
+	glDeleteShader(lineShader);
 }
 
 GLFWwindow* Window::create_window(int width, int height)
@@ -333,17 +342,16 @@ void Window::idle_callback()
 void Window::display_callback(GLFWwindow* window)
 {
 	// Clear the color and depth buffers
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 	
 	// Use the shader of programID
-	glUseProgram(shaderProgram);
 	
 	limbAng += moveVel;
 	limbAnim->M = glm::rotate(glm::mat4(1.0f), 0.8f*std::sin(limbAng), glm::vec3(1, 0, 0));
 	limbOAnim->M = glm::rotate(glm::mat4(1.0f), 0.8f*std::sin(-limbAng), glm::vec3(1, 0, 0));
 	neckAnim->M = glm::rotate(glm::mat4(1.0f), 0.2f*std::sin(-limbAng), glm::vec3(0, 0, 1));
 
-	curveTime += moveVel / 20;
+	//curveTime += moveVel / 20;
 	std::pair<glm::vec3, glm::vec3> inter = bezier->interpolate(curveTime);
 
 	glm::vec3 up(0, 1, 0);
@@ -351,26 +359,53 @@ void Window::display_callback(GLFWwindow* window)
 		up = glm::vec3(1, 0, 0);
 	}
 
-	glm::vec3 xAxis = glm::normalize(glm::cross(inter.second, up));
-	glm::vec3 yAxis = glm::normalize(glm::cross(xAxis, inter.second));
-	glm::vec3 zAxis = glm::normalize(inter.second);
+	glDepthMask(GL_TRUE);
+	glDrawBuffer(GL_NONE);
+	glUseProgram(depthShader);
+	glPolygonOffset(0, 1);
+	glEnable(GL_POLYGON_OFFSET_FILL);
 	sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first-inter.second, up)));
-	//sceneGraph->draw(glm::mat4(1.0f));
-	//sceneGraph->draw(glm::translate(glm::mat4(1.0f), inter.first));
-	//sceneGraph->draw(glm::translate(glm::mat4(1.0f), inter.first) * glm::mat4(
-	//				xAxis[0], xAxis[1], xAxis[2], 0, 
-	//				yAxis[0], yAxis[1], yAxis[2], 0, 
-	//				zAxis[0], zAxis[1], zAxis[2], 0, 
-	//				0, 0, 0, 1
-	//));
-	//sceneGraph->draw(glm::mat4(1.0f));
+	glDisable(GL_POLYGON_OFFSET_FILL);
 
-	//current->draw(shaderProgram);
+	glEnable(GL_STENCIL_TEST);
+	glDepthMask(GL_FALSE);
+	glEnable(GL_DEPTH_CLAMP);        
+	glDisable(GL_CULL_FACE);
+
+	glStencilFunc(GL_ALWAYS, 0, 0xff);
+
+	glStencilOpSeparate(GL_BACK, GL_KEEP, GL_INCR_WRAP, GL_KEEP);
+	glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_DECR_WRAP, GL_KEEP);       
+
+	glUseProgram(shadowShader);
+	sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first-inter.second, up)));
+
+	glDisable(GL_DEPTH_CLAMP);
+	glEnable(GL_CULL_FACE);                  
+
+	glDrawBuffer(GL_BACK);
+
+	glStencilFunc(GL_EQUAL, 0x0, 0xFF);
+	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+
+	glUseProgram(mainShader);
+	sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first-inter.second, up)));
+
+	glDisable(GL_STENCIL_TEST);
+	glDepthMask(GL_TRUE);
+	glUseProgram(mainShader);
 	if (Window::activeLights[1]) {
-		sphere->draw(shaderProgram);
+		sphere->draw(mainShader);
 	}
 	if (Window::activeLights[2]) {
-		cone->draw(shaderProgram);
+		cone->draw(mainShader);
+	}
+
+	if (!Window::normalColor) {
+		glUseProgram(shadowShader);
+		glEnable(GL_DEPTH_CLAMP);        
+		sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first-inter.second, up)));
+		glDisable(GL_DEPTH_CLAMP);        
 	}
 
 	bezier->draw();
@@ -512,7 +547,8 @@ void Window::cursor_pos_callback(GLFWwindow * window, double posX, double posY) 
 		//std::cerr<<"cos "<<glm::dot(start, stop) <<" "<< (glm::length(start) * glm::length(stop))<<"\n";
 		glm::vec3 axis = glm::cross(start, stop);
 		float angle = acos(glm::dot(start, stop) / (glm::length(start) * glm::length(stop)));
-		
+
+		//axis = glm::vec3(glm::mat3(glm::lookAt(cam_pos, cam_look_at, cam_up)) * glm::vec4(axis, 1.0f));
 		switch (Window::mode) {
 			case 0:
 				dragon->rotate(axis, angle);
