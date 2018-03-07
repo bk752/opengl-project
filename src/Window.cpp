@@ -51,7 +51,8 @@ Transform *limbAnim;
 Transform *limbOAnim;
 Transform *neckAnim;
 
-float moveVel = 1.0f;
+float moveVel = 0.4f;
+//float moveVel = 1.0f;
 //float moveVel = 0.2f;
 float curveTime = 0;
 float limbAng = 0;
@@ -126,9 +127,9 @@ void Window::initialize_objects()
 	lineShader = LoadShaders(VERTEX_LINE_PATH, FRAGMENT_LINE_PATH);
 
 	Transform *robot = new Transform(glm::rotate(glm::mat4(1.0f), glm::half_pi<float>(), glm::vec3(1, 0, 0)));
-	robot->addChild(new Geometry("res/robot-parts/body.obj", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, shaderProgram));
+	robot->addChild(new Geometry("res/robot-parts/body.obj", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, shaderProgram, false));
 
-	Geometry *limb = new Geometry("res/robot-parts/head.obj", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, shaderProgram);
+	Geometry *limb = new Geometry("res/robot-parts/head.obj", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, shaderProgram, false);
 	Transform *temp = new Transform(glm::rotate(glm::rotate(
 					glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, -1.6)),
 					glm::pi<float>(), glm::vec3(1, 0, 0)),
@@ -139,7 +140,7 @@ void Window::initialize_objects()
 	neckAnim->addChild(limb);
 
 	limb = new Geometry("res/robot-parts/antenna.obj", glm::vec3(0.0f, 0.0f, 0.0f),
-			glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, shaderProgram);
+			glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, shaderProgram, false);
 	Transform *temp2 = new Transform(glm::scale(glm::translate(glm::mat4(1.0f),
 					glm::vec3(-0.5f, 0, 0.5f)), glm::vec3(0.3f, 0.3f, 0.3f)));
 	neckAnim->addChild(temp2);
@@ -149,7 +150,7 @@ void Window::initialize_objects()
 	neckAnim->addChild(temp3);
 	temp3->addChild(temp2);
 
-	limb = new Geometry("res/robot-parts/eyeball.obj", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, shaderProgram);
+	limb = new Geometry("res/robot-parts/eyeball.obj", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, shaderProgram, false);
 	temp3 = new Transform(glm::rotate(glm::mat4(1.0f), glm::pi<float>(), glm::vec3(0, 0, 1)));
 	temp2 = new Transform(glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3(-0.35f, 0.8f, -0.1f)), glm::vec3(0.2f, 0.2f, 0.2f)));
 	neckAnim->addChild(temp2);
@@ -160,7 +161,7 @@ void Window::initialize_objects()
 	neckAnim->addChild(temp2);
 	temp2->addChild(temp3);
 
-	limb = new Geometry("res/robot-parts/limb.obj", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, shaderProgram);
+	limb = new Geometry("res/robot-parts/limb.obj", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, shaderProgram, false);
 	temp = new Transform(glm::translate(glm::mat4(1.0f), glm::vec3(1.3, 0, -0.8)));
 	robot->addChild(temp);
 	limbAnim = new Transform(glm::rotate(glm::mat4(1.0f), 0.0f, glm::vec3(1, 0, 0)));

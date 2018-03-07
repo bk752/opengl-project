@@ -171,25 +171,6 @@ void OBJObject::draw(GLuint shaderProgram)
 	//std::cout<<normalTransform[3][0]<<" "<<normalTransform[3][1]<<" "<<normalTransform[3][2]<<" "<<normalTransform[3][3]<<"\n";
 	this->normalTransform = glm::inverse(glm::transpose(glm::mat4(glm::mat3(this->toWorld))));
 
-	glMatrixMode(GL_MODELVIEW);
-
-	// Push a save state onto the matrix stack, and multiply in the toWorld matrix
-	glPushMatrix();
-	glMultMatrixf(&(toWorld[0][0]));
-
-	glBegin(GL_TRIANGLES);
-	// Loop through all the vertices of this OBJ Object and render them
-	for (Triangle t : faces) {
-		Vertex v = vertices[t.vertices[0]];
-		glVertex3f(v.x, v.y, v.z);
-
-		v = vertices[t.vertices[1]];
-		glVertex3f(v.x, v.y, v.z);
-
-		v = vertices[t.vertices[2]];
-		glVertex3f(v.x, v.y, v.z);
-	}
-
 	glm::mat4 modelview = Window::V * toWorld;
 
 	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection"), 1, GL_FALSE, &Window::P[0][0]);
@@ -228,10 +209,6 @@ void OBJObject::draw(GLuint shaderProgram)
 	glDrawElements(GL_TRIANGLES, 3*faces.size(), GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
 	glEnd();
-
-	// Pop the save state off the matrix stack
-	// This will undo the multiply we did earlier
-	glPopMatrix();
 }
 
 void OBJObject::update()

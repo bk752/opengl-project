@@ -14,6 +14,7 @@
 #include <glm/gtc/constants.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <vector>
+#include <map>
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -29,13 +30,17 @@ private:
   float angle;
 
 public:
-	Geometry(std::string, glm::vec3, glm::vec3, glm::vec3, float, GLuint);
+	Geometry(std::string, glm::vec3, glm::vec3, glm::vec3, float, GLuint, bool);
 	~Geometry();
 
-	void drawModel(GLuint);
+	void drawModel();
+	void drawShadow();
+	void drawDepth();
 	void draw(glm::mat4);
 	void update() {};
 	void parse(std::string);
+
+	float storeAdjacent;
 
 	glm::vec3 albedo;
 	glm::vec3 ambient;
@@ -45,14 +50,21 @@ public:
 
 	glm::vec3 position;
 	glm::vec3 scale;
-	std::vector<Vertex> vertices;
+	std::vector<glm::vec3> vertices;
+	std::vector<glm::vec3> colors;
 	std::vector<glm::vec3> normals;
-	std::vector<Triangle> faces;
+	std::vector<GLuint> faces;
 	glm::mat4 toWorld;
 	glm::mat4 normalTransform;
 	glm::mat4 rotation;
 
 	GLuint VBO, VB1, VAO, EBO;
+	GLuint uProjection, uModelview, uModel, uNormalTransform;
+	GLuint uViewPos, uAlbedo, uAmbRef, uSpecRef, uPhongExp, uUseNormal;
+	GLuint uDirLightDir, uDirLightColor;
+	GLuint uPointLightPos, uPointLightColor, uPointLightAtten;
+	GLuint uSpotLightPos, uSpotLightDir, uSpotLightColor, uSpotLightDrop, uSpotLightMinDot;
+	GLuint uShowSpot, uShowDir, uShowPoint;
 };
 
 #endif
