@@ -1,5 +1,6 @@
 #include "OBJObject.h"
 #include "Window.h"
+#include <algorithm>
 
 OBJObject::OBJObject(std::string name, glm::vec3 norm, glm::vec3 pos, glm::vec3 diff, glm::vec3 amb, glm::vec3 spec, float phong) 
 {

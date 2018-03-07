@@ -5,7 +5,7 @@
 #include "Geometry.h"
 #include "Bezier.h"
 #include "Skybox.h"
-
+#include <algorithm>
 const char* window_title = "GLFW Starter Project";
 OBJObject *dragon;
 OBJObject *bunny;

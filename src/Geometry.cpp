@@ -1,6 +1,7 @@
 #include "Geometry.h"
 #include "Window.h"
 #include <cmath>
+#include <algorithm>
 
 Geometry::Geometry(std::string name, glm::vec3 diff, glm::vec3 amb, glm::vec3 spec, float phong, GLuint program, bool adjacent) 
 {
@@ -45,7 +46,7 @@ Geometry::Geometry(std::string name, glm::vec3 diff, glm::vec3 amb, glm::vec3 sp
 		(GLvoid*)0);
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(glm::vec3), &faces[0], GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(GLuint), &faces[0], GL_STATIC_DRAW);
 
 	uProjection = glGetUniformLocation(shader, "projection");
 	uModelview = glGetUniformLocation(shader, "modelview");
