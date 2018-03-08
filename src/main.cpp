@@ -81,14 +81,35 @@ int main(void)
 	// Initialize objects/pointers for rendering
 	Window::initialize_objects();
 
+
+	int n = 10;
+	int i = 0;
+	while (!glfwWindowShouldClose(window)) {
+		// Main render display callback. Rendering of objects is done here.
+		Window::display_callback(window);
+		// Idle callback. Updating objects, etc. can be done here.
+		Window::idle_callback();
+		if (i == 0)
+			glAccum(GL_LOAD, 1.0 / n);
+		else
+			glAccum(GL_ACCUM, 1.0 / n);
+
+		i++;
+
+		if (i >= n) {
+			i = 0;
+			glAccum(GL_RETURN, 1.0);
+			glfwSwapBuffers(window);
+		}
+	}
 	// Loop while GLFW window should stay open
-	while (!glfwWindowShouldClose(window))
+	/*while (!glfwWindowShouldClose(window))
 	{
 		// Main render display callback. Rendering of objects is done here.
 		Window::display_callback(window);
 		// Idle callback. Updating objects, etc. can be done here.
 		Window::idle_callback();
-	}
+	}*/
 
 	Window::clean_up();
 	// Destroy the window

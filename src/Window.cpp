@@ -19,6 +19,7 @@ OBJObject *current;
 Transform *sceneGraph;
 Bezier *bezier;
 Skybox *skybox;
+int t = 0;
 
 // On some systems you need to change this to the absolute path
 #define VERTEX_SHADER_PATH "obj.vert"
@@ -339,7 +340,8 @@ void Window::display_callback(GLFWwindow* window)
 	// Use the shader of programID
 	glUseProgram(shaderProgram);
 	
-	limbAng += moveVel;
+	current->draw(shaderProgram);
+	/*limbAng += moveVel;
 	limbAnim->M = glm::rotate(glm::mat4(1.0f), 0.8f*std::sin(limbAng), glm::vec3(1, 0, 0));
 	limbOAnim->M = glm::rotate(glm::mat4(1.0f), 0.8f*std::sin(-limbAng), glm::vec3(1, 0, 0));
 	neckAnim->M = glm::rotate(glm::mat4(1.0f), 0.2f*std::sin(-limbAng), glm::vec3(0, 0, 1));
@@ -354,7 +356,7 @@ void Window::display_callback(GLFWwindow* window)
 
 	glm::vec3 xAxis = glm::normalize(glm::cross(inter.second, up));
 	glm::vec3 yAxis = glm::normalize(glm::cross(xAxis, inter.second));
-	glm::vec3 zAxis = glm::normalize(inter.second);
+	glm::vec3 zAxis = glm::normalize(inter.second);*/
 	//sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first-inter.second, up)));
 	//sceneGraph->draw(glm::mat4(1.0f));
 	//sceneGraph->draw(glm::translate(glm::mat4(1.0f), inter.first));
@@ -366,22 +368,22 @@ void Window::display_callback(GLFWwindow* window)
 	//));
 	//sceneGraph->draw(glm::mat4(1.0f));
 
-	current->draw(shaderProgram);
+	/*current->draw(shaderProgram);
 	if (Window::activeLights[1]) {
 		sphere->draw(shaderProgram);
 	}
 	if (Window::activeLights[2]) {
 		cone->draw(shaderProgram);
-	}
+	}*/
 
 	//bezier->draw();
 
-	skybox->draw();
+	//skybox->draw();
 
 	// Gets events, including input such as keyboard and mouse or window resizing
 	glfwPollEvents();
 	// Swap buffers
-	glfwSwapBuffers(window);
+	//glfwSwapBuffers(window);
 }
 
 void Window::key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
