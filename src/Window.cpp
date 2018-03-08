@@ -574,8 +574,15 @@ void Window::cursor_pos_callback(GLFWwindow * window, double posX, double posY) 
 				if (glm::length(axis) < 0.001) {
 					return;
 				}
+				axis = glm::normalize(axis);
+				glm::mat4 camTransform = glm::inverse(glm::mat4(glm::mat3(glm::lookAt(cam_look_at, cam_pos, cam_up))));
+				camTransform[0][0] = -camTransform[0][0];
+				camTransform[0][1] = -camTransform[0][1];
+				camTransform[0][2] = -camTransform[0][2];
+				axis = glm::vec3(camTransform * glm::vec4(axis, 1.0f));
 				glm::mat4 rotator = glm::rotate(glm::mat4(1.0f), -angle, axis);
 				cam_pos = glm::vec3(rotator * glm::vec4(cam_pos, 1.0f));
+				cam_up = glm::vec3(rotator * glm::vec4(cam_up, 1.0f));
 				Window::V = glm::lookAt(cam_pos, cam_look_at, cam_up);
 				break;
 		}
