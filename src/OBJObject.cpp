@@ -4,6 +4,7 @@
 
 OBJObject::OBJObject(std::string name, glm::vec3 norm, glm::vec3 pos, glm::vec3 diff, glm::vec3 amb, glm::vec3 spec, float phong) 
 {
+	prevModelView = Window::V * toWorld;
 	toWorld = glm::mat4(1.0f);
 	parse(name);
 	this->toWorld = glm::mat4(1.0f);
@@ -174,6 +175,9 @@ void OBJObject::draw(GLuint shaderProgram)
 
 	glm::mat4 modelview = Window::V * toWorld;
 
+	if (prevModelView != modelview) {
+		glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "prevmodelview"), 1, GL_FALSE, &prevModelView[0][0]);
+	}
 	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection"), 1, GL_FALSE, &Window::P[0][0]);
 	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "modelview"), 1, GL_FALSE, &modelview[0][0]);
 	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, &toWorld[0][0]);
@@ -210,6 +214,8 @@ void OBJObject::draw(GLuint shaderProgram)
 	glDrawElements(GL_TRIANGLES, 3*faces.size(), GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
 	glEnd();
+	
+	prevModelView = modelview;
 }
 
 void OBJObject::update()

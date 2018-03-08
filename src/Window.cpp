@@ -33,6 +33,8 @@ glm::vec3 cam_pos(0.0f, 0.0f, 20.0f);		// e	| Position of camera
 glm::vec3 cam_look_at(0.0f, 0.0f, 0.0f);	// d	| This is where the camera looks at
 glm::vec3 cam_up(0.0f, 1.0f, 0.0f);			// up | What orientation "up" is
 
+bool Window::leftPressed;
+bool Window::rightPressed;
 int Window::width;
 int Window::height;
 DirLight Window::dir;
@@ -102,7 +104,7 @@ void Window::initialize_objects()
 	dragon = new OBJObject("res/dragon.obj", glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(4.0f, 0.0f, 0.0f),
 			glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f);
 
-	bunny = new OBJObject("res/bunny.obj", glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(4.0f, 0.0f, 0.0f),
+	bunny = new OBJObject("res/bunny.obj", glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f),
 			glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), 1.0f);
 
 	bear = new OBJObject("res/bear.obj", glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(4.0f, 0.0f, 0.0f),
@@ -127,7 +129,7 @@ void Window::initialize_objects()
 	// Load the shader program. Make sure you have the correct filepath up top
 	shaderProgram = LoadShaders(VERTEX_SHADER_PATH, FRAGMENT_SHADER_PATH);
 	lineShader = LoadShaders(VERTEX_LINE_PATH, FRAGMENT_LINE_PATH);
-
+	
 	Transform *robot = new Transform(glm::rotate(glm::mat4(1.0f), glm::half_pi<float>(), glm::vec3(1, 0, 0)));
 	robot->addChild(new Geometry("res/robot-parts/body.obj", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, shaderProgram, false));
 
@@ -245,6 +247,8 @@ void Window::clean_up()
 
 GLFWwindow* Window::create_window(int width, int height)
 {
+	Window::leftPressed = false;
+	Window::rightPressed = false;
 	// Initialize GLFW
 	if (!glfwInit())
 	{
@@ -383,7 +387,8 @@ void Window::display_callback(GLFWwindow* window)
 	// Gets events, including input such as keyboard and mouse or window resizing
 	glfwPollEvents();
 	// Swap buffers
-	//glfwSwapBuffers(window);
+	glfwSwapBuffers(window);
+	
 }
 
 void Window::key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)

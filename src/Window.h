@@ -38,6 +38,8 @@ public:
 	static int width;
 	static int height;
 	static int mode;
+	static bool leftPressed;
+	static bool rightPressed;
 	static bool activeLights[3];
 	static bool normalColor;
 	static glm::mat4 P; // P for projection

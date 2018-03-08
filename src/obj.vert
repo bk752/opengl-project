@@ -14,6 +14,7 @@ uniform mat4 projection;
 uniform mat4 modelview;
 uniform mat4 model;
 uniform mat4 normalTransform;
+uniform mat4 prevmodelview;
 
 //uniform vec3 pointPos;
 //uniform vec3 spotPos;
@@ -24,9 +25,18 @@ uniform mat4 normalTransform;
 out vec4 normalColor;
 out vec3 FragPos;
 out vec3 Normal;
+out vec3 velocity;
+out vec4 velocityColor;
 
 void main()
 {
+	vec4 curPos = modelview * vec4(position, 1.0);
+	vec4 prevPos = prevmodelview * vec4(position, 1.0);
+	velocity = vec3(curPos - prevPos);
+	vec3 velco = normalize(velocity);
+	velco = velco * 0.5f;
+	velco = velco + 0.5f;
+	velocityColor = vec4(velco, 1.0f);
     // OpenGL maintains the D matrix so you only need to multiply by P, V (aka C inverse), and M
     gl_Position = projection * modelview * vec4(position, 1.0);
     normalColor = vec4((normalize(normal) + vec3(1, 1, 1)) / 2, 1.0f);

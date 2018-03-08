@@ -23,6 +23,8 @@ struct SpotLight {
 in vec3 FragPos;
 in vec3 Normal;
 in vec4 normalColor;
+in vec3 velocity;
+in vec4 velocityColor;
 
 out vec4 color;
 
@@ -48,7 +50,7 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir);
 void main()
 {    
 	if (useNormal) {
-		color = normalColor;
+		color = velocityColor;
 	} else {
 		// Properties
 		vec3 norm = normalize(Normal);
