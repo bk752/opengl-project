@@ -19,6 +19,7 @@ GLint depthShader;
 GLint lineShader;
 OBJObject *current;
 Transform *sceneGraph;
+Transform *sceneFloor;
 Bezier *bezier;
 Skybox *skybox;
 
@@ -66,7 +67,7 @@ float moveVel = 0.4f;
 //float moveVel = 0.2f;
 float curveTime = 0;
 float limbAng = 0;
-int robotRad = 2;
+int robotRad = 1;
 
 std::vector<std::string> skyFaces = {
 	"res/right.jpg",
@@ -198,12 +199,15 @@ void Window::initialize_objects()
 
 	sceneGraph = new Transform(glm::mat4(1.0f));
 
+	sceneFloor = new Transform(glm::scale(glm::mat4(1.0f), glm::vec3(100, 1, 100)));
+
 	Geometry *box = new Geometry("res/cube.obj", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, mainShader, shadowShader, depthShader, true);
+	sceneFloor->addChild(box);
 	Transform *robRow = new Transform(glm::mat4(1.0f));
 	for (int i = -robotRad; i <= robotRad; i++) {
 		Transform *robTrans = new Transform(glm::mat4(glm::translate(glm::mat4(1.0f), glm::vec3(4.0f * i, 0, 0))));
-		//robTrans->addChild(robot);
-		robTrans->addChild(box);
+		robTrans->addChild(robot);
+		//robTrans->addChild(box);
 		robRow->addChild(robTrans);
 	}
 
@@ -365,6 +369,7 @@ void Window::display_callback(GLFWwindow* window)
 	glDrawBuffer(GL_NONE);
 	glUseProgram(depthShader);
 	sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first-inter.second, up)));
+	sceneFloor->draw(glm::translate(glm::mat4(1.0f), glm::vec3(0, -10, 0)));
 
 	glEnable(GL_STENCIL_TEST);
 	glDepthMask(GL_FALSE);
@@ -387,9 +392,10 @@ void Window::display_callback(GLFWwindow* window)
 	glStencilFunc(GL_EQUAL, 0x0, 0xFF);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 
-	P = glm::perspective(45.0f, (float)width / (float)height, 0.11f, 1000.01f);
+	P = glm::perspective(45.0f, (float)width / (float)height, 0.10f, 1005.0f);
 	glUseProgram(mainShader);
 	sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first-inter.second, up)));
+	sceneFloor->draw(glm::translate(glm::mat4(1.0f), glm::vec3(0, -10, 0)));
 	P = glm::perspective(45.0f, (float)width / (float)height, 0.1f, 1000.0f);
 
 	glDisable(GL_STENCIL_TEST);
@@ -408,15 +414,11 @@ void Window::display_callback(GLFWwindow* window)
 
 	if (!Window::normalColor) {
 		glUseProgram(shadowShader);
-		glEnable(GL_DEPTH_CLAMP);        
 		glDisable(GL_CULL_FACE);
-		glDisable(GL_DEPTH_TEST);
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first-inter.second, up)));
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		glEnable(GL_CULL_FACE);
-		glEnable(GL_DEPTH_TEST);
-		glDisable(GL_DEPTH_CLAMP);        
 	}
 
 	// Gets events, including input such as keyboard and mouse or window resizing
