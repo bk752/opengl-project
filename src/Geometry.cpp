@@ -158,8 +158,9 @@ void Geometry::parse(std::string name)
 							v[(i + 1) % 3], v[i]));
 			if (opposite == edgeOpposite.end()) {
 				faces.push_back(v[(i + 2) % 3] - 1);
+				std::cout<<"No opposite\n";
 			} else {
-				faces.push_back(faces[(opposite->second)]);
+				faces.push_back((opposite->second) - 1);
 			}
 		}
 	}

@@ -1,10 +1,12 @@
 #include <vector>
+#include <algorithm>
 #include "Window.h"
 #include "Node.h"
 #include "Transform.h"
 #include "Geometry.h"
 #include "Bezier.h"
 #include "Skybox.h"
+
 const char* window_title = "GLFW Starter Project";
 OBJObject *dragon;
 OBJObject *bunny;
@@ -64,7 +66,7 @@ float moveVel = 0.4f;
 //float moveVel = 0.2f;
 float curveTime = 0;
 float limbAng = 0;
-int robotRad = 1;
+int robotRad = 2;
 
 std::vector<std::string> skyFaces = {
 	"res/right.jpg",
@@ -351,7 +353,7 @@ void Window::display_callback(GLFWwindow* window)
 	limbOAnim->M = glm::rotate(glm::mat4(1.0f), 0.8f*std::sin(-limbAng), glm::vec3(1, 0, 0));
 	neckAnim->M = glm::rotate(glm::mat4(1.0f), 0.2f*std::sin(-limbAng), glm::vec3(0, 0, 1));
 
-	//curveTime += moveVel / 20;
+	curveTime += moveVel / 20;
 	std::pair<glm::vec3, glm::vec3> inter = bezier->interpolate(curveTime);
 
 	glm::vec3 up(0, 1, 0);
@@ -362,10 +364,7 @@ void Window::display_callback(GLFWwindow* window)
 	glDepthMask(GL_TRUE);
 	glDrawBuffer(GL_NONE);
 	glUseProgram(depthShader);
-	glPolygonOffset(0, 1);
-	glEnable(GL_POLYGON_OFFSET_FILL);
 	sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first-inter.second, up)));
-	glDisable(GL_POLYGON_OFFSET_FILL);
 
 	glEnable(GL_STENCIL_TEST);
 	glDepthMask(GL_FALSE);
@@ -388,8 +387,10 @@ void Window::display_callback(GLFWwindow* window)
 	glStencilFunc(GL_EQUAL, 0x0, 0xFF);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 
+	P = glm::perspective(45.0f, (float)width / (float)height, 0.11f, 1000.01f);
 	glUseProgram(mainShader);
 	sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first-inter.second, up)));
+	P = glm::perspective(45.0f, (float)width / (float)height, 0.1f, 1000.0f);
 
 	glDisable(GL_STENCIL_TEST);
 	glDepthMask(GL_TRUE);
@@ -401,16 +402,22 @@ void Window::display_callback(GLFWwindow* window)
 		cone->draw(mainShader);
 	}
 
-	if (!Window::normalColor) {
-		glUseProgram(shadowShader);
-		glEnable(GL_DEPTH_CLAMP);        
-		sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first-inter.second, up)));
-		glDisable(GL_DEPTH_CLAMP);        
-	}
-
 	bezier->draw();
 
 	skybox->draw();
+
+	if (!Window::normalColor) {
+		glUseProgram(shadowShader);
+		glEnable(GL_DEPTH_CLAMP);        
+		glDisable(GL_CULL_FACE);
+		glDisable(GL_DEPTH_TEST);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first-inter.second, up)));
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		glEnable(GL_CULL_FACE);
+		glEnable(GL_DEPTH_TEST);
+		glDisable(GL_DEPTH_CLAMP);        
+	}
 
 	// Gets events, including input such as keyboard and mouse or window resizing
 	glfwPollEvents();

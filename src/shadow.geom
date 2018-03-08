@@ -34,31 +34,32 @@ void projectEdge(vec3 v0, vec3 v1)
 void main()
 {
     vec3 e1 = vPos[2] - vPos[0];
-    vec3 e2 = vPos[4] - vPos[0];
-    vec3 e3 = vPos[1] - vPos[0];
+    vec3 e2 = vPos[1] - vPos[0];
+    vec3 e3 = vPos[4] - vPos[2];
     vec3 e4 = vPos[3] - vPos[2];
-    vec3 e5 = vPos[4] - vPos[2];
-    vec3 e6 = vPos[5] - vPos[0];
+    vec3 e5 = vPos[0] - vPos[4];
+    vec3 e6 = vPos[5] - vPos[4];
 
-    vec3 normal = normalize(cross(e1,e2));
+    vec3 normal = normalize(cross(e5,e1));
     vec3 lightDir = normalize(lightPos - vPos[0]);
+	EndPrimitive();
 
     if (dot(normal, lightDir) > 0) {
 
-        normal = cross(e3,e1);
+        normal = cross(e2,e1);
 
         if (dot(normal, lightDir) <= 0) {
             projectEdge(vPos[0], vPos[2]);
         }
 
-        normal = cross(e4,e5);
+        normal = cross(e4,e3);
         lightDir = lightPos - vPos[2];
 
         if (dot(normal, lightDir) <= 0) {
             projectEdge(vPos[2], vPos[4]);
         }
 
-        normal = cross(e2,e6);
+        normal = cross(e6,e5);
         lightDir = lightPos - vPos[4];
 
         if (dot(normal, lightDir) <= 0) {
@@ -93,11 +94,11 @@ void main()
 
         EndPrimitive();
     } else {
-        gl_Position = vec4(2, 0, 0, 0.0);
+        gl_Position = vec4(2, 0, 0, 1.0);
         EmitVertex();
-        gl_Position = vec4(2, 0, 0, 0.0);
+        gl_Position = vec4(2, 0, 0, 1.0);
         EmitVertex();
-        gl_Position = vec4(2, 0, 0, 0.0);
+        gl_Position = vec4(2, 0, 0, 1.0);
         EmitVertex();
         EndPrimitive();
 	}
