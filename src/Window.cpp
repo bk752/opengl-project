@@ -6,6 +6,7 @@
 #include "Bezier.h"
 #include "Skybox.h"
 #include <algorithm>
+#include <string>
 const char* window_title = "GLFW Starter Project";
 OBJObject *dragon;
 OBJObject *bunny;
@@ -354,7 +355,7 @@ void Window::display_callback(GLFWwindow* window)
 	glm::vec3 xAxis = glm::normalize(glm::cross(inter.second, up));
 	glm::vec3 yAxis = glm::normalize(glm::cross(xAxis, inter.second));
 	glm::vec3 zAxis = glm::normalize(inter.second);
-	sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first-inter.second, up)));
+	//sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first-inter.second, up)));
 	//sceneGraph->draw(glm::mat4(1.0f));
 	//sceneGraph->draw(glm::translate(glm::mat4(1.0f), inter.first));
 	//sceneGraph->draw(glm::translate(glm::mat4(1.0f), inter.first) * glm::mat4(
@@ -365,7 +366,7 @@ void Window::display_callback(GLFWwindow* window)
 	//));
 	//sceneGraph->draw(glm::mat4(1.0f));
 
-	//current->draw(shaderProgram);
+	current->draw(shaderProgram);
 	if (Window::activeLights[1]) {
 		sphere->draw(shaderProgram);
 	}
@@ -373,7 +374,7 @@ void Window::display_callback(GLFWwindow* window)
 		cone->draw(shaderProgram);
 	}
 
-	bezier->draw();
+	//bezier->draw();
 
 	skybox->draw();
 
