@@ -81,9 +81,10 @@ int main(void)
 	// Initialize objects/pointers for rendering
 	Window::initialize_objects();
 
-	/*
-	int n = 10;
+	// uncomment here for accumulation motion blur
+	/*int n = 5;
 	int i = 0;
+
 	while (!glfwWindowShouldClose(window)) {
 		// Main render display callback. Rendering of objects is done here.
 		Window::display_callback(window);
@@ -101,8 +102,9 @@ int main(void)
 			glAccum(GL_RETURN, 1.0);
 			glfwSwapBuffers(window);
 		}
-	}*/
-	// Loop while GLFW window should stay open
+	}
+	*/
+	// uncomment for normal use
 	while (!glfwWindowShouldClose(window))
 	{
 		// Main render display callback. Rendering of objects is done here.

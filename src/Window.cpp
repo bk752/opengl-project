@@ -33,8 +33,6 @@ glm::vec3 cam_pos(0.0f, 0.0f, 20.0f);		// e	| Position of camera
 glm::vec3 cam_look_at(0.0f, 0.0f, 0.0f);	// d	| This is where the camera looks at
 glm::vec3 cam_up(0.0f, 1.0f, 0.0f);			// up | What orientation "up" is
 
-bool Window::leftPressed;
-bool Window::rightPressed;
 int Window::width;
 int Window::height;
 DirLight Window::dir;
@@ -96,7 +94,9 @@ int mouseX = 0;
 int mouseY = 0;
 bool clickRight = false;
 bool clickLeft = false;
-
+bool fboUsed = false;
+GLuint fboId;
+GLuint textureId;
 void Window::initialize_objects()
 {
 	V = glm::lookAt(cam_pos, cam_look_at, cam_up);
@@ -233,6 +233,37 @@ void Window::initialize_objects()
 	);
 	bezier->updateBuffer();
 
+
+
+	glGenTextures(1, &textureId);
+	glBindTexture(GL_TEXTURE_2D, textureId);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE); // automatic mipmap
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, Window::width, Window::height, 0,
+		GL_RGBA, GL_UNSIGNED_BYTE, 0);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	// create a framebuffer object
+	glGenFramebuffers(1, &fboId);
+	glBindFramebuffer(GL_FRAMEBUFFER, fboId);
+
+	// attach the texture to FBO color attachment point
+	glFramebufferTexture2D(GL_FRAMEBUFFER,        // 1. fbo target: GL_FRAMEBUFFER 
+		GL_COLOR_ATTACHMENT0,  // 2. attachment point
+		GL_TEXTURE_2D,         // 3. tex target: GL_TEXTURE_2D
+		textureId,             // 4. tex ID
+		0);                    // 5. mipmap level: 0(base)
+
+							 // check FBO status
+	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	if (status == GL_FRAMEBUFFER_COMPLETE)
+		fboUsed = true;
+
+	// switch back to window-system-provided framebuffer
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 // Treat this as a destructor function. Delete dynamically allocated memory here.
@@ -247,8 +278,6 @@ void Window::clean_up()
 
 GLFWwindow* Window::create_window(int width, int height)
 {
-	Window::leftPressed = false;
-	Window::rightPressed = false;
 	// Initialize GLFW
 	if (!glfwInit())
 	{
@@ -300,6 +329,8 @@ GLFWwindow* Window::create_window(int width, int height)
 	// Call the resize callback to make sure things get drawn immediately
 	Window::resize_callback(window, width, height);
 
+	
+
 	return window;
 }
 
@@ -317,6 +348,8 @@ void Window::resize_callback(GLFWwindow* window, int width, int height)
 	{
 		P = glm::perspective(45.0f, (float)width / (float)height, 0.1f, 1000.0f);
 	}
+
+
 }
 
 void Window::idle_callback()
@@ -338,12 +371,22 @@ void Window::idle_callback()
 
 void Window::display_callback(GLFWwindow* window)
 {
-	// Clear the color and depth buffers
+
+	glBindFramebuffer(GL_FRAMEBUFFER, fboId);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	
+
 	// Use the shader of programID
 	glUseProgram(shaderProgram);
-	
+	current->draw(shaderProgram);
+	glfwSwapBuffers(window);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	// Clear the color and depth buffers
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	// Use the shader of programID
+	glUseProgram(shaderProgram);
+
 	current->draw(shaderProgram);
 	/*limbAng += moveVel;
 	limbAnim->M = glm::rotate(glm::mat4(1.0f), 0.8f*std::sin(limbAng), glm::vec3(1, 0, 0));

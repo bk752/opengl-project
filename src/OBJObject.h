@@ -28,7 +28,7 @@ private:
 	float angle;
 
 public:
-	glm::mat4 prevModelView = glm::mat4(1.0);
+	glm::mat4 prevmodelviewproj = glm::mat4(1.0);
 	OBJObject(std::string, glm::vec3, glm::vec3, glm::vec3, glm::vec3, glm::vec3, float);
 	~OBJObject();
 
