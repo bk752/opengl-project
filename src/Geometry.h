@@ -29,12 +29,11 @@ private:
   float angle;
 
 public:
-	Geometry(std::string, glm::vec3, glm::vec3, glm::vec3, float, GLuint, GLuint, GLuint, bool);
+	Geometry(std::string, glm::vec3, glm::vec3, glm::vec3, float, GLuint, GLuint, bool);
 	~Geometry();
 
 	void drawModel();
 	void drawShadow();
-	void drawDepth();
 	void draw(glm::mat4);
 	void update() {};
 	void parse(std::string);
@@ -47,7 +46,6 @@ public:
 	float phongExp;
 	GLuint shader;
 	GLuint shadowShader;
-	GLuint depthShader;
 	GLuint ambianceShader;
 
 	glm::vec3 position;
@@ -69,8 +67,6 @@ public:
 	GLuint uShowSpot, uShowDir, uShowPoint;
 
 	GLuint uShadowModel, uShadowViewProject, uShadowLightPos;
-
-	GLuint uDepthTransform;
 };
 
 #endif

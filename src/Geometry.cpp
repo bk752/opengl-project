@@ -3,7 +3,7 @@
 #include <cmath>
 #include <algorithm>
 
-Geometry::Geometry(std::string name, glm::vec3 diff, glm::vec3 amb, glm::vec3 spec, float phong, GLuint program, GLuint shadow, GLuint depth, bool adjacent) 
+Geometry::Geometry(std::string name, glm::vec3 diff, glm::vec3 amb, glm::vec3 spec, float phong, GLuint program, GLuint shadow, bool adjacent) 
 {
 	toWorld = glm::mat4(1.0f);
 
@@ -77,9 +77,6 @@ Geometry::Geometry(std::string name, glm::vec3 diff, glm::vec3 amb, glm::vec3 sp
 	uShadowModel = glGetUniformLocation(shadowShader, "model");
 	uShadowViewProject = glGetUniformLocation(shadowShader, "viewproject");
 	uShadowLightPos = glGetUniformLocation(shadowShader, "lightPos");
-
-	this->depthShader = depth;
-	uDepthTransform = glGetUniformLocation(depthShader, "transform");
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
@@ -196,8 +193,6 @@ void Geometry::draw(glm::mat4 c) {
 		drawModel();
 	} else if ((GLuint)program == shadowShader) {
 		drawShadow();
-	} else if ((GLuint)program == depthShader) {
-		drawDepth();
 	}
 } 
 
@@ -268,18 +263,4 @@ void Geometry::drawShadow() {
 		glDrawElements(GL_TRIANGLES_ADJACENCY, faces.size(), GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);
 	}
-}
-
-void Geometry::drawDepth() {
-	glm::mat4 mvp = Window::P * Window::V * toWorld;
-	glUniformMatrix4fv(uDepthTransform, 1, GL_FALSE, &mvp[0][0]);
-
-	glBindVertexArray(VAO);
-
-	if (storeAdjacent) {
-		glDrawElements(GL_TRIANGLES_ADJACENCY, faces.size(), GL_UNSIGNED_INT, 0);
-	} else {
-		glDrawElements(GL_TRIANGLES, faces.size(), GL_UNSIGNED_INT, 0);
-	}
-	glBindVertexArray(0);
 }
