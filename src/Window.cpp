@@ -114,6 +114,7 @@ GLuint velocityTexture;
 GLuint depthrenderbuffer;
 GLuint velocityShader;
 GLuint quad_vertexbuffer;
+GLuint quad_arraybuffer;
 bool ok = false;
 GLuint velocityTexID;
 GLuint renderTexID;
@@ -335,10 +336,24 @@ void Window::initialize_objects()
 	};
 
 	
+	glGenVertexArrays(1, &quad_arraybuffer);
 	glGenBuffers(1, &quad_vertexbuffer);
+	glBindVertexArray(quad_arraybuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, quad_vertexbuffer);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(g_quad_vertex_buffer_data), g_quad_vertex_buffer_data, GL_STATIC_DRAW);
 
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(
+		quad_vertexPosition_modelspace, // attribute
+		3,                              // size
+		GL_FLOAT,                       // type
+		GL_FALSE,                       // normalized?
+		0,                              // stride
+		(void*)0                        // array buffer offset
+	);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
 	quad_vertexPosition_modelspace = glGetAttribLocation(quad_programID, "aPos");
 	velocityTexID = glGetUniformLocation(quad_programID, "velocityTexture");
 	renderTexID = glGetUniformLocation(quad_programID, "renderTexture");
@@ -498,23 +513,10 @@ void Window::display_callback(GLFWwindow* window)
 	glBindTexture(GL_TEXTURE_2D, renderTexture);
 	glUniform1i(renderTexID, 1);
 
-	// 1st attribute buffer : vertices
-	glEnableVertexAttribArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, quad_vertexbuffer);
-	glVertexAttribPointer(
-		quad_vertexPosition_modelspace, // attribute
-		3,                              // size
-		GL_FLOAT,                       // type
-		GL_FALSE,                       // normalized?
-		0,                              // stride
-		(void*)0                        // array buffer offset
-	);
-
+	glBindVertexArray(quad_arraybuffer);
 	// Draw the triangles !
 	glDrawArrays(GL_TRIANGLES, 0, 6); // 2*3 indices starting at 0 -> 2 triangles
-	
-	glDisableVertexAttribArray(0);
-
+	glBindVertexArray(0);
 
 	//current->draw(shaderProgram);
 	/*limbAng += moveVel;
