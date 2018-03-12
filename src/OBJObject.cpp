@@ -175,10 +175,8 @@ void OBJObject::draw(GLuint shaderProgram)
 
 	glm::mat4 modelview = Window::V * toWorld;
 	glm::mat4 modelviewproj = Window::P * Window::V * toWorld;
-	if (prevmodelviewproj != modelviewproj) {
-		glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "prevmodelviewproj"), 1, GL_FALSE, &prevmodelviewproj[0][0]);
-	}
-	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "modelviewproj"), 1, GL_FALSE, &modelviewproj[0][0]);
+	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "uPrevModelViewProjectionMat"), 1, GL_FALSE, &prevmodelviewproj[0][0]);
+	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "uModelViewProjectionMat"), 1, GL_FALSE, &modelviewproj[0][0]);
 	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection"), 1, GL_FALSE, &Window::P[0][0]);
 	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "modelview"), 1, GL_FALSE, &modelview[0][0]);
 	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, &toWorld[0][0]);
@@ -216,12 +214,19 @@ void OBJObject::draw(GLuint shaderProgram)
 	glBindVertexArray(0);
 	glEnd();
 	
-	prevmodelviewproj = modelviewproj;
 }
 
 void OBJObject::update()
 {
-	//spin(1.0f);
+	this->normalTransform = glm::mat4(1.0f);
+	this->normalTransform = glm::rotate(this->normalTransform, this->angle / 180.0f * glm::pi<float>(), normal);
+	this->normalTransform = this->normalTransform * rotation;
+	this->normalTransform = glm::scale(this->normalTransform, scale);
+
+	this->toWorld = glm::mat4(1.0f);
+	this->toWorld = glm::translate(this->toWorld, position);
+	this->toWorld = this->toWorld * this->normalTransform;
+	prevmodelviewproj = Window::P * Window::V * toWorld;
 }
 
 void OBJObject::move(float x, float y, float z, float scl) {

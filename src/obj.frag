@@ -27,7 +27,6 @@ in vec4 prevPos;
 in vec4 curPos;
 
 out vec4 color;
-
 uniform bool useNormal;
 uniform bool showDirLight;
 uniform bool showPointLight;
@@ -50,12 +49,7 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir);
 void main()
 {    
 	if (useNormal) {
-		vec3 velocity = vec3(curPos - prevPos);
-		vec3 velco = normalize(velocity);
-		velco = velco * 0.5f;
-		velco = velco + 0.5f;
-		vec4 velocityColor = vec4(velco, 1.0f) * length(velocity)*2;
-		color = velocityColor;
+		color = normalColor;
 	} else {
 		// Properties
 		vec3 norm = normalize(Normal);
