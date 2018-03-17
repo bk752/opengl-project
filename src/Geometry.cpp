@@ -72,6 +72,8 @@ Geometry::Geometry(std::string name, glm::vec3 diff, glm::vec3 amb, glm::vec3 sp
 	uSpotLightColor = glGetUniformLocation(shader, "spotLight.color");
 	uSpotLightDrop = glGetUniformLocation(shader, "spotLight.dropoff");
 	uSpotLightMinDot = glGetUniformLocation(shader, "spotLight.minDot");
+	uPrevMvp = glGetUniformLocation(shader, "uPrevModelViewProjectionMat");
+	uCurrentMvp = glGetUniformLocation(shader, "uModelViewProjectionMat");
 
 	this->shadowShader = shadow;
 	uShadowModel = glGetUniformLocation(shadowShader, "model");
@@ -208,8 +210,12 @@ void Geometry::drawModel()
 
 	// Push a save state onto the matrix stack, and multiply in the toWorld matrix
 	glm::mat4 modelview = Window::V * toWorld;
+	glm::mat4 modelviewproj = Window::P * Window::V * toWorld;
+	prevmodelviewproj = modelviewproj;
 
 
+	glUniformMatrix4fv(uPrevMvp, 1, GL_FALSE, &prevmodelviewproj[0][0]);
+	glUniformMatrix4fv(uCurrentMvp, 1, GL_FALSE, &modelviewproj[0][0]);
 	glUniformMatrix4fv(uProjection, 1, GL_FALSE, &Window::P[0][0]);
 	glUniformMatrix4fv(uModelview, 1, GL_FALSE, &modelview[0][0]);
 	glUniformMatrix4fv(uModel, 1, GL_FALSE, &toWorld[0][0]);
@@ -249,6 +255,9 @@ void Geometry::drawModel()
 		glDrawElements(GL_TRIANGLES, faces.size(), GL_UNSIGNED_INT, 0);
 	}
 	glBindVertexArray(0);
+}
+
+void Geometry::update() {
 }
 
 void Geometry::drawShadow() {

@@ -4,6 +4,7 @@
 
 OBJObject::OBJObject(std::string name, glm::vec3 norm, glm::vec3 pos, glm::vec3 diff, glm::vec3 amb, glm::vec3 spec, float phong) 
 {
+	prevmodelviewproj = Window::V * toWorld;
 	toWorld = glm::mat4(1.0f);
 	parse(name);
 	this->toWorld = glm::mat4(1.0f);
@@ -173,7 +174,9 @@ void OBJObject::draw(GLuint shaderProgram)
 	this->normalTransform = glm::inverse(glm::transpose(glm::mat4(glm::mat3(this->toWorld))));
 
 	glm::mat4 modelview = Window::V * toWorld;
-
+	glm::mat4 modelviewproj = Window::P * Window::V * toWorld;
+	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "uPrevModelViewProjectionMat"), 1, GL_FALSE, &prevmodelviewproj[0][0]);
+	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "uModelViewProjectionMat"), 1, GL_FALSE, &modelviewproj[0][0]);
 	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "projection"), 1, GL_FALSE, &Window::P[0][0]);
 	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "modelview"), 1, GL_FALSE, &modelview[0][0]);
 	glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "model"), 1, GL_FALSE, &toWorld[0][0]);
@@ -206,14 +209,22 @@ void OBJObject::draw(GLuint shaderProgram)
 	glUniform1f(glGetUniformLocation(shaderProgram, "spotLight.minDot"), cos(Window::spot.minDot));
 
 	glBindVertexArray(VAO);
-
+	//glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glDrawElements(GL_TRIANGLES, 3*faces.size(), GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
 }
 
 void OBJObject::update()
 {
-	//spin(1.0f);
+	this->normalTransform = glm::mat4(1.0f);
+	this->normalTransform = glm::rotate(this->normalTransform, this->angle / 180.0f * glm::pi<float>(), normal);
+	this->normalTransform = this->normalTransform * rotation;
+	this->normalTransform = glm::scale(this->normalTransform, scale);
+
+	this->toWorld = glm::mat4(1.0f);
+	this->toWorld = glm::translate(this->toWorld, position);
+	this->toWorld = this->toWorld * this->normalTransform;
+	prevmodelviewproj = Window::P * Window::V * toWorld;
 }
 
 void OBJObject::move(float x, float y, float z, float scl) {

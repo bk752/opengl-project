@@ -6,7 +6,12 @@
 #include "Geometry.h"
 #include "Bezier.h"
 #include "Skybox.h"
+#include <algorithm>
+#include <string>
+#include <chrono>
+#include <thread>
 
+std::chrono::milliseconds prevFrame;
 const char* window_title = "GLFW Starter Project";
 OBJObject *dragon;
 OBJObject *bunny;
@@ -21,6 +26,8 @@ Transform *sceneGraph;
 Transform *sceneFloor;
 Bezier *bezier;
 Skybox *skybox;
+
+int t = 0;
 
 // On some systems you need to change this to the absolute path
 #define VERTEX_SHADER_PATH "obj.vert"
@@ -63,7 +70,15 @@ float moveVel = 0.4f;
 //float moveVel = 0.2f;
 float curveTime = 0;
 float limbAng = 0;
-int robotRad = 1;
+int robotRad = 0;
+static const float skyboxVertices[] = {
+	-1.0f, -1.0f, 0.0f,
+	1.0f, -1.0f, 0.0f,
+	-1.0f,  1.0f, 0.0f,
+	-1.0f,  1.0f, 0.0f,
+	1.0f, -1.0f, 0.0f,
+	1.0f,  1.0f, 0.0f,
+};
 
 std::vector<std::string> skyFaces = {
 	"res/right.jpg",
@@ -99,31 +114,51 @@ int mouseX = 0;
 int mouseY = 0;
 bool clickRight = false;
 bool clickLeft = false;
+bool fboUsed = false;
+GLuint velocityBuffer;
+GLuint quad_programID;
+GLuint velocityTexture;
+GLuint depthrenderbuffer;
+GLuint velocityShader;
+GLuint quad_vertexbuffer;
+GLuint quad_arraybuffer;
+bool ok = false;
+GLuint velocityTexID;
+GLuint renderTexID;
+GLuint quad_vertexPosition_modelspace;
 
+GLuint renderBuffer;
+GLuint depthRenderBuffer;
+GLuint stencilRenderBuffer;
+GLuint renderTexture;
 void Window::initialize_objects()
 {
+	prevFrame = std::chrono::duration_cast< std::chrono::milliseconds >(
+		std::chrono::system_clock::now().time_since_epoch()
+	);
+
 	V = glm::lookAt(cam_pos, cam_look_at, cam_up);
 
-	dragon = new OBJObject("res/dragon.obj", glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(4.0f, 0.0f, 0.0f),
-			glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f);
+	dragon = new OBJObject("res/dragon.obj", glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(4.0f, 1.0f, 0.0f),
+		glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f);
 
-	bunny = new OBJObject("res/bunny.obj", glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(4.0f, 0.0f, 0.0f),
-			glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), 1.0f);
+	bunny = new OBJObject("res/bunny.obj", glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f),
+		glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), 1.0f);
 
-	bear = new OBJObject("res/bear.obj", glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(4.0f, 0.0f, 0.0f),
-			glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.5f, 0.5f, 0.5f), 6.0f);
+	bear = new OBJObject("res/bunny.obj", glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(4.0f, -1.0f, 0.0f),
+		glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.5f, 0.5f, 0.5f), 6.0f);
 
-	Window::dir = {glm::vec3(1.0, -1.0, 0.0), glm::vec3(1.0, 1.0, 1.0)};
-	Window::point = {glm::vec3(0.0, 2.0, 0.0), glm::vec3(1.0, 1.0, 1.0), 1};
+	Window::dir = { glm::vec3(1.0, -1.0, 0.0), glm::vec3(1.0, 1.0, 1.0) };
+	Window::point = { glm::vec3(0.0, 2.0, 0.0), glm::vec3(1.0, 1.0, 1.0), 1 };
 
 	sphere = new OBJObject("res/sphere.obj", glm::vec3(1.0f, 1.0f, 1.0f), point.position,
-			glm::vec3(0.0f, 0.0f, 0.0f), Window::point.color, glm::vec3(0.0f, 0.0f, 0.0f), 1.0f);
+		glm::vec3(0.0f, 0.0f, 0.0f), Window::point.color, glm::vec3(0.0f, 0.0f, 0.0f), 1.0f);
 	sphere->scale = glm::vec3(0.25, 0.25, 0.25);
 
-	Window::spot = {glm::vec3(0.0, -2.0, 0.0), glm::vec3(0.0, 0.0, 0.0), glm::vec3(1.0, 1.0, 1.0), 2, 0.5};
+	Window::spot = { glm::vec3(0.0, -2.0, 0.0), glm::vec3(0.0, 0.0, 0.0), glm::vec3(1.0, 1.0, 1.0), 2, 0.5 };
 
 	cone = new OBJObject("res/cone.obj", glm::vec3(0.0f, 1.0f, 0.0f), spot.position,
-			glm::vec3(0.0f, 0.0f, 0.0f), Window::spot.color, glm::vec3(0.0f, 0.0f, 0.0f), 1.0f);
+		glm::vec3(0.0f, 0.0f, 0.0f), Window::spot.color, glm::vec3(0.0f, 0.0f, 0.0f), 1.0f);
 	cone->scale = glm::vec3(0.25, 0.25, 0.25);
 	fixSpotlight();
 
@@ -133,15 +168,17 @@ void Window::initialize_objects()
 	mainShader = LoadShaders(VERTEX_SHADER_PATH, FRAGMENT_SHADER_PATH);
 	shadowShader = LoadShaders(VERTEX_SHADOW_PATH, FRAGMENT_SHADOW_PATH, GEOMETRY_SHADOW_PATH);
 	lineShader = LoadShaders(VERTEX_LINE_PATH, FRAGMENT_LINE_PATH);
+	quad_programID = LoadShaders("texture.vert", "texture.frag");
+	velocityShader = LoadShaders("velocity.vert", "velocity.frag");
 
 	Transform *robot = new Transform(glm::rotate(glm::mat4(1.0f), glm::half_pi<float>(), glm::vec3(1, 0, 0)));
 	robot->addChild(new Geometry("res/robot-parts/body.obj", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, mainShader, shadowShader, true));
 
 	Geometry *limb = new Geometry("res/robot-parts/head.obj", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, mainShader, shadowShader, false);
 	Transform *temp = new Transform(glm::rotate(glm::rotate(
-					glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, -1.6)),
-					glm::pi<float>(), glm::vec3(1, 0, 0)),
-				glm::pi<float>(), glm::vec3(0, 0, 1)));
+		glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, -1.6)),
+		glm::pi<float>(), glm::vec3(1, 0, 0)),
+		glm::pi<float>(), glm::vec3(0, 0, 1)));
 	neckAnim = new Transform(glm::mat4(1.0f));
 	robot->addChild(temp);
 	temp->addChild(neckAnim);
@@ -150,7 +187,7 @@ void Window::initialize_objects()
 	limb = new Geometry("res/robot-parts/antenna.obj", glm::vec3(0.0f, 0.0f, 0.0f),
 			glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, mainShader, shadowShader, false);
 	Transform *temp2 = new Transform(glm::scale(glm::translate(glm::mat4(1.0f),
-					glm::vec3(-0.5f, 0, 0.5f)), glm::vec3(0.3f, 0.3f, 0.3f)));
+		glm::vec3(-0.5f, 0, 0.5f)), glm::vec3(0.3f, 0.3f, 0.3f)));
 	neckAnim->addChild(temp2);
 	temp2->addChild(limb);
 
@@ -215,30 +252,136 @@ void Window::initialize_objects()
 	skybox = new Skybox(skyFaces);
 
 	bezier = new Bezier(
-			glm::vec3(0, 0, 0),
-			glm::vec3(10, 0, 0),
-			glm::vec3(15, 0, -10),
-			glm::vec3(10, 0, -20),
-			lineShader
+		glm::vec3(0, 0, 0),
+		glm::vec3(10, 0, 0),
+		glm::vec3(15, 0, -10),
+		glm::vec3(10, 0, -20),
+		lineShader
 	);
 	bezier->addControl(
-			glm::vec3(0, 10, -30),
-			glm::vec3(0, 10, -40)
+		glm::vec3(0, 10, -30),
+		glm::vec3(0, 10, -40)
 	);
 	bezier->addControl(
-			glm::vec3(-10, 0, -10),
-			glm::vec3(-20, 0, -20)
+		glm::vec3(-10, 0, -10),
+		glm::vec3(-20, 0, -20)
 	);
 	bezier->addControl(
-			glm::vec3(-25, -5, -15),
-			glm::vec3(-30, 0, -5)
+		glm::vec3(-25, -5, -15),
+		glm::vec3(-30, 0, -5)
 	);
 	bezier->addControl(
-			glm::vec3(-10, 0, 0),
-			glm::vec3(0, 0, 0)
+		glm::vec3(-10, 0, 0),
+		glm::vec3(0, 0, 0)
 	);
 	bezier->updateBuffer();
 
+	glGenFramebuffers(1, &velocityBuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, velocityBuffer);
+
+	glGenTextures(1, &velocityTexture);
+
+	// "Bind" the newly created texture : all future texture functions will modify this texture
+	glBindTexture(GL_TEXTURE_2D, velocityTexture);
+
+	// Give an empty image to OpenGL ( the last "0" )
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, Window::width, Window::height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+
+	// Poor filtering. Needed !
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+
+
+	// Set "renderedTexture" as our colour attachement #0
+	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, velocityTexture, 0);
+
+	// Set the list of draw buffers.
+	GLenum DrawBuffers[1] = { GL_COLOR_ATTACHMENT0 };
+	glDrawBuffers(1, DrawBuffers); // "1" is the size of DrawBuffers
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE){
+		ok = true;
+	}
+
+
+	glGenFramebuffers(1, &renderBuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, renderBuffer);
+
+	glGenRenderbuffers(1, &depthRenderBuffer);
+	glBindRenderbuffer(GL_RENDERBUFFER, depthRenderBuffer);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, Window::width, Window::height);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRenderBuffer);
+
+
+	glGenRenderbuffers(1, &stencilRenderBuffer);
+	glBindRenderbuffer(GL_RENDERBUFFER, stencilRenderBuffer);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_STENCIL_INDEX8, Window::width, Window::height);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, stencilRenderBuffer);
+
+
+
+	glGenTextures(1, &renderTexture);
+
+	// "Bind" the newly created texture : all future texture functions will modify this texture
+	glBindTexture(GL_TEXTURE_2D, renderTexture);
+
+	// Give an empty image to OpenGL ( the last "0" )
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, Window::width, Window::height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+
+	// Poor filtering. Needed !
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+
+
+	// Set "renderedTexture" as our colour attachement #0
+	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, renderTexture, 0);
+
+	// Set the list of draw buffers.
+	glDrawBuffers(1, DrawBuffers); // "1" is the size of DrawBuffers
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+		ok = true;
+	}
+
+
+
+
+
+	static const GLfloat g_quad_vertex_buffer_data[] = {
+		-1.0f, -1.0f, 0.0f,
+		1.0f, -1.0f, 0.0f,
+		-1.0f,  1.0f, 0.0f,
+		-1.0f,  1.0f, 0.0f,
+		1.0f, -1.0f, 0.0f,
+		1.0f,  1.0f, 0.0f,
+	};
+
+	
+	glGenVertexArrays(1, &quad_arraybuffer);
+	glGenBuffers(1, &quad_vertexbuffer);
+	glBindVertexArray(quad_arraybuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, quad_vertexbuffer);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(g_quad_vertex_buffer_data), g_quad_vertex_buffer_data, GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(
+		quad_vertexPosition_modelspace, // attribute
+		3,                              // size
+		GL_FLOAT,                       // type
+		GL_FALSE,                       // normalized?
+		0,                              // stride
+		(void*)0                        // array buffer offset
+	);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+	quad_vertexPosition_modelspace = glGetAttribLocation(quad_programID, "aPos");
+	velocityTexID = glGetUniformLocation(quad_programID, "velocityTexture");
+	renderTexID = glGetUniformLocation(quad_programID, "renderTexture");
 }
 
 // Treat this as a destructor function. Delete dynamically allocated memory here.
@@ -304,6 +447,8 @@ GLFWwindow* Window::create_window(int width, int height)
 	// Call the resize callback to make sure things get drawn immediately
 	Window::resize_callback(window, width, height);
 
+	
+
 	return window;
 }
 
@@ -321,11 +466,12 @@ void Window::resize_callback(GLFWwindow* window, int width, int height)
 	{
 		P = glm::perspective(45.0f, (float)width / (float)height, 0.1f, 1000.0f);
 	}
+
+
 }
 
 void Window::idle_callback()
 {
-	bunny->update();
 	float rate = 0.05f;
 	glm::vec4 rotated = glm::rotate(glm::mat4(1.0f), rate, glm::vec3(0.0f, 1.0f, 0.0f))
 		* glm::vec4(Window::dir.direction.x, Window::dir.direction.y, Window::dir.direction.z, 1.0f);
@@ -342,17 +488,47 @@ void Window::idle_callback()
 
 void Window::display_callback(GLFWwindow* window)
 {
-	// Clear the color and depth buffers
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-	
+	std::chrono::milliseconds frameTime = std::chrono::duration_cast< std::chrono::milliseconds >(
+		std::chrono::system_clock::now().time_since_epoch()
+		);
+	std::this_thread::sleep_for(std::max(std::chrono::milliseconds(0), 
+		std::chrono::milliseconds(16) - (frameTime - prevFrame)));
+	prevFrame = frameTime;
+	glBindFramebuffer(GL_FRAMEBUFFER, velocityBuffer);
+	glViewport(0, 0, Window::width, Window::height);
+
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 	// Use the shader of programID
-	
-	//limbAng += moveVel;
+	glUseProgram(velocityShader);
+	bunny->draw(velocityShader);
+	dragon->draw(velocityShader);
+	bear->draw(velocityShader);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, renderBuffer);
+	glViewport(0, 0, Window::width, Window::height);
+
+	//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+	//glDepthMask(GL_TRUE);
+
+	// Use the shader of programID
+	glUseProgram(mainShader);
+	bunny->draw(mainShader);
+	dragon->draw(mainShader);
+	bear->draw(mainShader);
+
+	bunny->update();
+	dragon->update();
+	bear->update();
+
+	limbAng += moveVel;
 	limbAnim->M = glm::rotate(glm::mat4(1.0f), 0.8f*std::sin(limbAng), glm::vec3(1, 0, 0));
 	limbOAnim->M = glm::rotate(glm::mat4(1.0f), 0.8f*std::sin(-limbAng), glm::vec3(1, 0, 0));
 	neckAnim->M = glm::rotate(glm::mat4(1.0f), 0.2f*std::sin(-limbAng), glm::vec3(0, 0, 1));
 
-	//curveTime += moveVel / 20;
+	curveTime += moveVel/20;
 	std::pair<glm::vec3, glm::vec3> inter = bezier->interpolate(curveTime);
 
 	glm::vec3 up(0, 1, 0);
@@ -360,7 +536,6 @@ void Window::display_callback(GLFWwindow* window)
 		up = glm::vec3(1, 0, 0);
 	}
 
-	glDepthMask(GL_TRUE);
 	glUseProgram(mainShader);
 	Window::normalColor = !Window::normalColor;
 	sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first-inter.second, up)));
@@ -384,7 +559,7 @@ void Window::display_callback(GLFWwindow* window)
 	glDisable(GL_DEPTH_CLAMP);
 	glEnable(GL_CULL_FACE);                  
 
-	glDrawBuffer(GL_BACK);
+	glDrawBuffer(GL_COLOR_ATTACHMENT0);
 
 	glStencilFunc(GL_EQUAL, 0x0, 0xFF);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
@@ -402,10 +577,21 @@ void Window::display_callback(GLFWwindow* window)
 
     glDisable(GL_BLEND);
 
-
 	glDisable(GL_STENCIL_TEST);
 	glDepthMask(GL_TRUE);
 	glUseProgram(mainShader);
+
+	//sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first-inter.second, up)));
+	//sceneGraph->draw(glm::mat4(1.0f));
+	//sceneGraph->draw(glm::translate(glm::mat4(1.0f), inter.first));
+	//sceneGraph->draw(glm::translate(glm::mat4(1.0f), inter.first) * glm::mat4(
+	//				xAxis[0], xAxis[1], xAxis[2], 0, 
+	//				yAxis[0], yAxis[1], yAxis[2], 0, 
+	//				zAxis[0], zAxis[1], zAxis[2], 0, 
+	//				0, 0, 0, 1
+	//));
+	//sceneGraph->draw(glm::mat4(1.0f));
+
 	if (Window::activeLights[1]) {
 		sphere->draw(mainShader);
 	}
@@ -415,7 +601,8 @@ void Window::display_callback(GLFWwindow* window)
 
 	bezier->draw();
 
-	skybox->draw();
+	//sceneGraph->update();
+	//sceneFloor->update();
 
 	if (!Window::normalColor) {
 		glUseProgram(shadowShader);
@@ -426,10 +613,34 @@ void Window::display_callback(GLFWwindow* window)
 		glEnable(GL_CULL_FACE);
 	}
 
+	skybox->draw();
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glViewport(0, 0, Window::width, Window::height);
+
+	// Clear the color and depth buffers
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	// Use the shader of programID
+	glUseProgram(quad_programID);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, velocityTexture);
+	glUniform1i(velocityTexID, 0);
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, renderTexture);
+	glUniform1i(renderTexID, 1);
+
+	glBindVertexArray(quad_arraybuffer);
+	// Draw the triangles !
+	glDrawArrays(GL_TRIANGLES, 0, 6); // 2*3 indices starting at 0 -> 2 triangles
+	glBindVertexArray(0);
+
 	// Gets events, including input such as keyboard and mouse or window resizing
 	glfwPollEvents();
 	// Swap buffers
 	glfwSwapBuffers(window);
+	
 }
 
 void Window::key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)

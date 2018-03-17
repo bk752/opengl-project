@@ -14,7 +14,8 @@ uniform mat4 projection;
 uniform mat4 modelview;
 uniform mat4 model;
 uniform mat4 normalTransform;
-
+uniform mat4 uPrevModelViewProjectionMat;
+uniform mat4 uModelViewProjectionMat;
 //uniform vec3 pointPos;
 //uniform vec3 spotPos;
 
@@ -24,13 +25,24 @@ uniform mat4 normalTransform;
 out vec4 normalColor;
 out vec3 FragPos;
 out vec3 Normal;
+out vec4 velocityColor;
+out vec4 curPos;
+out vec4 prevPos;
 
 void main()
 {
+	curPos = uModelViewProjectionMat * vec4(position, 1.0);
+	prevPos = uPrevModelViewProjectionMat * vec4(position, 1.0);
+	vec2 UV = curPos.xy/curPos.w;
+    Normal = (normalTransform * vec4(normal, 1.0)).xyz;
+	vec4 velocity = curPos - prevPos;
+	if (dot(Normal, velocity.xyz) > 0) {
+		gl_Position = (2*curPos + prevPos)/3;
+	} else {
+		gl_Position = (curPos + 2*prevPos)/3; 
+	}
     // OpenGL maintains the D matrix so you only need to multiply by P, V (aka C inverse), and M
-    gl_Position = projection * modelview * vec4(position, 1.0);
     normalColor = vec4((normalize(normal) + vec3(1, 1, 1)) / 2, 1.0f);
     FragPos = (model * vec4(position, 1.0)).xyz;
-    Normal = normalize((normalTransform * vec4(normal, 1.0)).xyz);
     //Normal = normal;
 }

@@ -35,7 +35,7 @@ public:
 	void drawModel();
 	void drawShadow();
 	void draw(glm::mat4);
-	void update() {};
+	void update();
 	void parse(std::string);
 
 	float storeAdjacent;
@@ -48,6 +48,7 @@ public:
 	GLuint shadowShader;
 	GLuint ambianceShader;
 
+	glm::mat4 prevmodelviewproj;
 	glm::vec3 position;
 	glm::vec3 scale;
 	std::vector<glm::vec3> vertices;
@@ -65,6 +66,7 @@ public:
 	GLuint uPointLightPos, uPointLightColor, uPointLightAtten;
 	GLuint uSpotLightPos, uSpotLightDir, uSpotLightColor, uSpotLightDrop, uSpotLightMinDot;
 	GLuint uShowSpot, uShowDir, uShowPoint;
+	GLuint uPrevMvp, uCurrentMvp;
 
 	GLuint uShadowModel, uShadowViewProject, uShadowLightPos;
 };

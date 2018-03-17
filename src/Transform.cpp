@@ -19,4 +19,7 @@ void Transform::removeChild(Node *child) {
 }
 
 void Transform::update() {
+  for (Node *child : children) {
+    child->update();
+  }
 }

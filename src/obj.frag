@@ -23,9 +23,10 @@ struct SpotLight {
 in vec3 FragPos;
 in vec3 Normal;
 in vec4 normalColor;
+in vec4 prevPos;
+in vec4 curPos;
 
 out vec4 color;
-
 uniform bool useNormal;
 uniform bool showDirLight;
 uniform bool showPointLight;
