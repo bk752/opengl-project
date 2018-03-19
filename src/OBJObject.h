@@ -31,7 +31,7 @@ public:
 	glm::mat4 prevmodelviewproj = glm::mat4(1.0);
 	OBJObject(std::string, glm::vec3, glm::vec3, glm::vec3, glm::vec3, glm::vec3, float);
 	~OBJObject();
-
+	void assimpLoad(std::string);
 	void parse(std::string);
 	void draw(GLuint);
 
@@ -55,7 +55,7 @@ public:
 	glm::mat4 toWorld;
 	glm::mat4 normalTransform;
 	glm::mat4 rotation;
-
+	std::vector<Mesh> meshes;
 	GLuint VBO, VB1, VAO, EBO;
 };
 

@@ -23,4 +23,13 @@ struct Triangle
 	GLuint vertices[3];
 };
 
+struct Mesh {
+	std::vector<glm::vec3> normals;
+	std::vector<Vertex> vertices;
+	std::vector<Triangle> faces;
+	glm::vec3 ambient;
+	glm::vec3 specular;
+	glm::vec3 diffuse;
+	float shininess;
+};
 #endif

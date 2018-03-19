@@ -1,7 +1,9 @@
 #include "OBJObject.h"
 #include "Window.h"
 #include <algorithm>
-
+#include <assimp/cimport.h>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 OBJObject::OBJObject(std::string name, glm::vec3 norm, glm::vec3 pos, glm::vec3 diff, glm::vec3 amb, glm::vec3 spec, float phong) 
 {
 	prevmodelviewproj = Window::V * toWorld;
@@ -61,9 +63,78 @@ OBJObject::~OBJObject()
 	glDeleteBuffers(1, &VBO);
 	glDeleteBuffers(1, &EBO);
 }
+
+void OBJObject::assimpLoad(std::string name) {
+	const aiScene* bunnyImp = aiImportFile("res/Lowpoly_tree_sample.obj", aiProcessPreset_TargetRealtime_MaxQuality);
+	std::cout << "Number of meshes found in file: " << bunnyImp->mNumMeshes << std::endl;
+	std::cout << "Number of vertices in mesh 1: " << bunnyImp->mMeshes[0]->mNumVertices << std::endl;
+
+	
+}
 void OBJObject::parse(std::string name) 
 {
-	float x, y, z;
+	const aiScene* obj = aiImportFile(name.c_str(), aiProcessPreset_TargetRealtime_MaxQuality);
+	std::cout << name << std::endl;
+	std::cout << "Number of meshes found in file: " << obj->mNumMeshes << std::endl;
+	for (int i = 0; i < obj->mNumMeshes; i++) {
+		std::cout << "Number of vertices in mesh "<< i << ": " << obj->mMeshes[i]->mNumVertices << std::endl;
+	}
+	std::cout << std::endl;
+	std::cout << std::endl;
+	for (int meshI = 0; meshI < obj->mNumMeshes; meshI++) {
+		Mesh curMesh;
+		aiMesh* mesh = obj->mMeshes[meshI];
+
+		aiMaterial* mat = obj->mMaterials[mesh->mMaterialIndex];
+		aiColor4D specular;
+		aiColor4D diffuse;
+		aiColor4D ambient;
+		float shininess;
+		aiGetMaterialColor(mat, AI_MATKEY_COLOR_SPECULAR, &specular);
+		aiGetMaterialColor(mat, AI_MATKEY_COLOR_DIFFUSE, &diffuse);
+		aiGetMaterialColor(mat, AI_MATKEY_COLOR_AMBIENT, &ambient);
+		aiGetMaterialFloat(mat, AI_MATKEY_SHININESS, &shininess);
+		curMesh.ambient = glm::vec3(ambient.r, ambient.g, ambient.b);
+		curMesh.diffuse = glm::vec3(diffuse.r, diffuse.g, diffuse.b);
+		curMesh.specular = glm::vec3(specular.r, specular.g, specular.b);
+		curMesh.shininess = shininess;
+
+		for (int vertI = 0; vertI < mesh->mNumVertices; vertI++) {
+			
+			aiVector3D vertex = mesh->mVertices[vertI];
+			aiVector3D normal = mesh->mNormals[vertI];
+			Vertex vert;
+			vert.x = vertex.x;
+			vert.y = vertex.y;
+			vert.z = vertex.z;
+			curMesh.vertices.push_back(vert);
+			curMesh.normals.push_back(glm::vec3(normal.x, normal.y, normal.z));
+
+		}
+
+		for (int faceI = 0; faceI < mesh->mNumFaces; faceI++) {
+			Triangle tri;
+			aiFace face = mesh->mFaces[faceI];
+			int v1 = face.mIndices[0];
+			int v2 = face.mIndices[1];
+			int v3 = face.mIndices[2];
+			curMesh.faces.push_back({ { ((unsigned int)v1), ((unsigned int)v2), ((unsigned int)v3)} });
+
+		}
+		
+		this->meshes.push_back(curMesh);
+	}
+	this->vertices = meshes[0].vertices;
+	this->normals = meshes[0].normals;
+	this->faces = meshes[0].faces;
+
+	if (obj->mNumMeshes == 3) {
+		this->vertices = meshes[2].vertices;
+		this->normals = meshes[2].normals;
+		this->faces = meshes[2].faces;
+	}
+
+	/*float x, y, z;
 	float r, g, b;
 	int c1, c2;
 
@@ -153,7 +224,7 @@ if (vn < vertices.size()) {
 		vertices[i].x /= rad;
 		vertices[i].y /= rad;
 		vertices[i].z /= rad;
-	}
+	}*/
 }
 
 void OBJObject::draw(GLuint shaderProgram) 

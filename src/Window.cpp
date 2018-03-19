@@ -11,6 +11,9 @@
 #include <chrono>
 #include <thread>
 
+#include <assimp/cimport.h>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 std::chrono::milliseconds prevFrame;
 const char* window_title = "GLFW Starter Project";
 OBJObject *dragon;
@@ -118,7 +121,6 @@ bool fboUsed = false;
 GLuint velocityBuffer;
 GLuint quad_programID;
 GLuint velocityTexture;
-GLuint depthrenderbuffer;
 GLuint velocityShader;
 GLuint quad_vertexbuffer;
 GLuint quad_arraybuffer;
@@ -133,6 +135,13 @@ GLuint stencilRenderBuffer;
 GLuint renderTexture;
 void Window::initialize_objects()
 {
+
+	const aiScene* bunnyImp =aiImportFile("res/Lowpoly_tree_sample.obj", aiProcessPreset_TargetRealtime_MaxQuality);
+	std::cout << "Number of meshes found in file: " << bunnyImp->mNumMeshes << std::endl;
+	std::cout << "Number of vertices in mesh 1: " << bunnyImp->mMeshes[0]->mNumVertices << std::endl;
+
+
+
 	prevFrame = std::chrono::duration_cast< std::chrono::milliseconds >(
 		std::chrono::system_clock::now().time_since_epoch()
 	);
@@ -142,10 +151,10 @@ void Window::initialize_objects()
 	dragon = new OBJObject("res/dragon.obj", glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(4.0f, 1.0f, 0.0f),
 		glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f);
 
-	bunny = new OBJObject("res/bunny.obj", glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f),
+	bunny = new OBJObject("res/bunny.obj", glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(-4.0f, 0.0f, 0.0f),
 		glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), 1.0f);
 
-	bear = new OBJObject("res/bunny.obj", glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(4.0f, -1.0f, 0.0f),
+	bear = new OBJObject("res/tree.obj", glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(4.0f, -1.0f, 0.0f),
 		glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.5f, 0.5f, 0.5f), 6.0f);
 
 	Window::dir = { glm::vec3(1.0, -1.0, 0.0), glm::vec3(1.0, 1.0, 1.0) };
@@ -234,7 +243,9 @@ void Window::initialize_objects()
 	sceneFloor = new Transform(glm::scale(glm::mat4(1.0f), glm::vec3(100, 1, 100)));
 
 	Geometry *box = new Geometry("res/cube.obj", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, mainShader, shadowShader, true);
-	sceneFloor->addChild(box);
+	Geometry *tree = new Geometry("res/Lowpoly_tree_sample.obj", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, mainShader, shadowShader, true);
+	sceneFloor->addChild(tree);
+	//sceneFloor->addChild(box);
 	Transform *robRow = new Transform(glm::mat4(1.0f));
 	for (int i = -robotRad; i <= robotRad; i++) {
 		Transform *robTrans = new Transform(glm::mat4(glm::translate(glm::mat4(1.0f), glm::vec3(4.0f * i, 0, 0))));
@@ -309,7 +320,7 @@ void Window::initialize_objects()
 	glGenFramebuffers(1, &renderBuffer);
 	glBindFramebuffer(GL_FRAMEBUFFER, renderBuffer);
 
-	glGenRenderbuffers(1, &depthRenderBuffer);
+	/*glGenRenderbuffers(1, &depthRenderBuffer);
 	glBindRenderbuffer(GL_RENDERBUFFER, depthRenderBuffer);
 	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, Window::width, Window::height);
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRenderBuffer);
@@ -318,9 +329,20 @@ void Window::initialize_objects()
 	glGenRenderbuffers(1, &stencilRenderBuffer);
 	glBindRenderbuffer(GL_RENDERBUFFER, stencilRenderBuffer);
 	glRenderbufferStorage(GL_RENDERBUFFER, GL_STENCIL_INDEX8, Window::width, Window::height);
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, stencilRenderBuffer);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, stencilRenderBuffer);*/
 
+	glGenRenderbuffers(1, &depthRenderBuffer);
+	glBindRenderbuffer(GL_RENDERBUFFER, depthRenderBuffer);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, Window::width, Window::height);
 
+	//Create stencil RenderBuffer
+	/*glGenRenderbuffers(1, &stencilRenderBuffer);
+	glBindRenderbuffer(GL_RENDERBUFFER, stencilRenderBuffer);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_STENCIL_INDEX8, Window::width, Window::height);*/
+
+	// bind renderbuffers to framebuffer object
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRenderBuffer);
+	//glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, stencilRenderBuffer);
 
 	glGenTextures(1, &renderTexture);
 
