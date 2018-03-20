@@ -23,7 +23,7 @@ class Transform : public Node
 public:
 	Transform(glm::mat4);
 	glm::mat4 M;
-	void draw(glm::mat4 c);
+	void draw(glm::mat4 c, bool blur);
 	void update();
 	void addChild(Node *);
 	void removeChild(Node *);

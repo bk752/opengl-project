@@ -4,9 +4,9 @@ Transform::Transform(glm::mat4 m) {
   M = m;
 }
 
-void Transform::draw(glm::mat4 c) {
+void Transform::draw(glm::mat4 c, bool blur) {
   for (Node *child : children) {
-    child->draw(c * M);
+    child->draw(c * M, blur);
   }
 }
 

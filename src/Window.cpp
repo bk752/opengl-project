@@ -26,9 +26,11 @@ GLint shadowShader;
 GLint lineShader;
 OBJObject *current;
 Transform *sceneGraph;
+Transform *sceneGraph2;
 Transform *sceneFloor;
 Bezier *bezier;
 Skybox *skybox;
+Transform* trees;
 
 int t = 0;
 
@@ -44,7 +46,7 @@ int t = 0;
 #define GEOMETRY_SHADOW_PATH "shadow.geom"
 
 // Default camera parameters
-glm::vec3 cam_pos(0.0f, 0.0f, 20.0f);		// e	| Position of camera
+glm::vec3 cam_pos(0.0f, -5.0f, 0.0f);		// e	| Position of camera
 glm::vec3 cam_look_at(0.0f, 0.0f, 0.0f);	// d	| This is where the camera looks at
 glm::vec3 cam_up(0.0f, 1.0f, 0.0f);			// up | What orientation "up" is
 
@@ -55,7 +57,7 @@ PointLight Window::point;
 SpotLight Window::spot;
 
 int Window::mode = 5;
-bool Window::activeLights[3] = {true, false, false};
+bool Window::activeLights[3] = {false, true, false};
 bool Window::normalColor = true;
 
 glm::vec3 Window::viewPos = cam_pos;
@@ -68,6 +70,8 @@ Transform *limbAnim;
 Transform *limbOAnim;
 Transform *neckAnim;
 
+float camUpAngle;
+float camAngle;
 float moveVel = 0.4f;
 //float moveVel = 1.0f;
 //float moveVel = 0.2f;
@@ -145,20 +149,20 @@ void Window::initialize_objects()
 	prevFrame = std::chrono::duration_cast< std::chrono::milliseconds >(
 		std::chrono::system_clock::now().time_since_epoch()
 	);
-
+	cam_look_at = glm::vec3(cam_pos.x + sin(camAngle), cam_pos.y + sin(camUpAngle), cam_pos.z + cos(camAngle));
 	V = glm::lookAt(cam_pos, cam_look_at, cam_up);
 
-	dragon = new OBJObject("res/dragon.obj", glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(4.0f, 1.0f, 0.0f),
+	dragon = new OBJObject("res/bear.obj", glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(4.0f, 1.0f, 0.0f),
 		glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f);
 
 	bunny = new OBJObject("res/bunny.obj", glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(-4.0f, 0.0f, 0.0f),
 		glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), 1.0f);
 
-	bear = new OBJObject("res/tree.obj", glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(4.0f, -1.0f, 0.0f),
-		glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.5f, 0.5f, 0.5f), 6.0f);
+	bear = new OBJObject("res/bear.obj", glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(4.0f, -1.0f, 0.0f),
+		glm::vec3(0.3f, 0.2f, 0.1f), glm::vec3(0.1f, 0.05f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), 6.0f);
 
 	Window::dir = { glm::vec3(1.0, -1.0, 0.0), glm::vec3(1.0, 1.0, 1.0) };
-	Window::point = { glm::vec3(0.0, 2.0, 0.0), glm::vec3(1.0, 1.0, 1.0), 1 };
+	Window::point = { glm::vec3(0.0, 2.0, 0.0), glm::vec3(1.0, 1.0, 1.0), 0.1f };
 
 	sphere = new OBJObject("res/sphere.obj", glm::vec3(1.0f, 1.0f, 1.0f), point.position,
 		glm::vec3(0.0f, 0.0f, 0.0f), Window::point.color, glm::vec3(0.0f, 0.0f, 0.0f), 1.0f);
@@ -180,10 +184,10 @@ void Window::initialize_objects()
 	quad_programID = LoadShaders("texture.vert", "texture.frag");
 	velocityShader = LoadShaders("velocity.vert", "velocity.frag");
 
-	Transform *robot = new Transform(glm::rotate(glm::mat4(1.0f), glm::half_pi<float>(), glm::vec3(1, 0, 0)));
-	robot->addChild(new Geometry("res/robot-parts/body.obj", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, mainShader, shadowShader, true));
+	/*Transform *robot = new Transform(glm::rotate(glm::mat4(1.0f), glm::half_pi<float>(), glm::vec3(1, 0, 0)));
+	robot->addChild(new Geometry("res/robot-parts/body.obj", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, mainShader, shadowShader, velocityShader, true));
 
-	Geometry *limb = new Geometry("res/robot-parts/head.obj", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, mainShader, shadowShader, false);
+	Geometry *limb = new Geometry("res/robot-parts/head.obj", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, mainShader, shadowShader, velocityShader, false);
 	Transform *temp = new Transform(glm::rotate(glm::rotate(
 		glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, -1.6)),
 		glm::pi<float>(), glm::vec3(1, 0, 0)),
@@ -194,7 +198,7 @@ void Window::initialize_objects()
 	neckAnim->addChild(limb);
 
 	limb = new Geometry("res/robot-parts/antenna.obj", glm::vec3(0.0f, 0.0f, 0.0f),
-			glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, mainShader, shadowShader, false);
+			glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, mainShader, shadowShader, velocityShader, false);
 	Transform *temp2 = new Transform(glm::scale(glm::translate(glm::mat4(1.0f),
 		glm::vec3(-0.5f, 0, 0.5f)), glm::vec3(0.3f, 0.3f, 0.3f)));
 	neckAnim->addChild(temp2);
@@ -204,7 +208,7 @@ void Window::initialize_objects()
 	neckAnim->addChild(temp3);
 	temp3->addChild(temp2);
 
-	limb = new Geometry("res/robot-parts/eyeball.obj", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, mainShader, shadowShader, false);
+	limb = new Geometry("res/robot-parts/eyeball.obj", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, mainShader, shadowShader, velocityShader, false);
 	temp3 = new Transform(glm::rotate(glm::mat4(1.0f), glm::pi<float>(), glm::vec3(0, 0, 1)));
 	temp2 = new Transform(glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3(-0.35f, 0.8f, -0.1f)), glm::vec3(0.2f, 0.2f, 0.2f)));
 	neckAnim->addChild(temp2);
@@ -215,7 +219,7 @@ void Window::initialize_objects()
 	neckAnim->addChild(temp2);
 	temp2->addChild(temp3);
 
-	limb = new Geometry("res/robot-parts/limb.obj", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, mainShader, shadowShader, false);
+	limb = new Geometry("res/robot-parts/limb.obj", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, mainShader, shadowShader, velocityShader, false);
 	temp = new Transform(glm::translate(glm::mat4(1.0f), glm::vec3(1.3, 0, -0.8)));
 	robot->addChild(temp);
 	limbAnim = new Transform(glm::rotate(glm::mat4(1.0f), 0.0f, glm::vec3(1, 0, 0)));
@@ -236,17 +240,74 @@ void Window::initialize_objects()
 
 	temp = new Transform(glm::translate(glm::mat4(1.0f), glm::vec3(0.4, 0, 0.8)));
 	temp->addChild(limbOAnim);
-	robot->addChild(temp);
-
+	robot->addChild(temp);*/
+	trees = new Transform(glm::mat4(1.0f));
 	sceneGraph = new Transform(glm::mat4(1.0f));
-
+	
 	sceneFloor = new Transform(glm::scale(glm::mat4(1.0f), glm::vec3(100, 1, 100)));
+	Geometry *werewolf = new Geometry("res/werewolf.obj", glm::vec3(0.7f, 0.7f, 0.7f), glm::vec3(0.05f, 0.05f, 0.05f), glm::vec3(0.0f, 0.0f, 0.0f), 6.0f, mainShader, shadowShader, velocityShader, true);
+	Transform *scaleWolf = new Transform(glm::scale(glm::mat4(1.0f), glm::vec3(5.0, 5.0, 5.0)));
+	scaleWolf->addChild(werewolf);
 
-	Geometry *box = new Geometry("res/cube.obj", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, mainShader, shadowShader, true);
-	Geometry *tree = new Geometry("res/Lowpoly_tree_sample.obj", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, mainShader, shadowShader, true);
-	sceneFloor->addChild(tree);
-	//sceneFloor->addChild(box);
-	Transform *robRow = new Transform(glm::mat4(1.0f));
+	sceneGraph->addChild(scaleWolf);
+	Geometry *box = new Geometry("res/cube.obj", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, mainShader, shadowShader, velocityShader, true);
+	Geometry *treeObj = new Geometry("res/treenoleaves.obj", glm::vec3(0.3f, 0.2f, 0.1f), glm::vec3(0.1f, 0.05f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), 6.0f, mainShader, shadowShader, velocityShader, true);
+
+	Transform *scaleTree = new Transform(glm::scale(glm::mat4(1.0f), glm::vec3(20.0, 30.0, 20.0)));
+	scaleTree->addChild(treeObj);
+	
+	Transform *treeVert = new Transform(glm::translate(glm::mat4(1.0f), glm::vec3(0.0, 13.0, 0.0)));
+	treeVert->addChild(scaleTree);
+
+	Transform * treeTrans = new Transform(glm::translate(glm::mat4(1.0f), glm::vec3(10.0, 0.0, 10.0)));
+	treeTrans->addChild(treeVert);
+
+	Transform * treeTrans1 = new Transform(glm::translate(glm::mat4(1.0f), glm::vec3(20.0, 0.0, 40.0)));
+	treeTrans1->addChild(treeVert);
+
+	Transform * treeTrans2 = new Transform(glm::translate(glm::mat4(1.0f), glm::vec3(20.0, 0.0, 20.0)));
+	treeTrans2->addChild(treeVert);
+
+	Transform * treeTrans3 = new Transform(glm::translate(glm::mat4(1.0f), glm::vec3(50.0, 0.0, 10.0)));
+	treeTrans3->addChild(treeVert);
+
+	Transform * treeTrans4 = new Transform(glm::translate(glm::mat4(1.0f), glm::vec3(-20.0, 0.0, -20.0)));
+	treeTrans4->addChild(treeVert);
+
+	Transform * treeTrans5 = new Transform(glm::translate(glm::mat4(1.0f), glm::vec3(-20.0, 0.0, 30.0)));
+	treeTrans5->addChild(treeVert);
+
+	Transform * treeTrans6 = new Transform(glm::translate(glm::mat4(1.0f), glm::vec3(30.0, 0.0, -10.0)));
+	treeTrans6->addChild(treeVert);
+
+	Transform * treeTrans7 = new Transform(glm::translate(glm::mat4(1.0f), glm::vec3(30.0, 0.0, -20.0)));
+	treeTrans7->addChild(treeVert);
+
+	Transform * treeTrans8 = new Transform(glm::translate(glm::mat4(1.0f), glm::vec3(30.0, 0.0, 30.0)));
+	treeTrans8->addChild(treeVert);
+
+
+	trees->addChild(treeTrans);
+	trees->addChild(treeTrans1);
+	trees->addChild(treeTrans2);
+	trees->addChild(treeTrans3);
+	trees->addChild(treeTrans4);
+	trees->addChild(treeTrans5);
+	trees->addChild(treeTrans6);
+	trees->addChild(treeTrans7);
+	trees->addChild(treeTrans8);
+
+	
+	sceneFloor->addChild(box);
+	//sceneGraph->addChild(box);
+	/*for (int i = -robotRad; i <= robotRad; i++) {
+		Transform *treeTrans = new Transform(glm::mat4(glm::translate(glm::mat4(1.0f), glm::vec3(4.0f * i, 0, 0))));
+		treeTrans->addChild(tree);
+		//robTrans->addChild(box);
+		sceneGraph->addChild(treeTrans);
+	}*/
+	//Transform* tree1 = new Transform(glm::translate)
+	/*Transform *robRow = new Transform(glm::mat4(1.0f));
 	for (int i = -robotRad; i <= robotRad; i++) {
 		Transform *robTrans = new Transform(glm::mat4(glm::translate(glm::mat4(1.0f), glm::vec3(4.0f * i, 0, 0))));
 		robTrans->addChild(robot);
@@ -258,7 +319,7 @@ void Window::initialize_objects()
 		Transform *robTrans = new Transform(glm::mat4(glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 4.0f * i))));
 		robTrans->addChild(robRow);
 		sceneGraph->addChild(robTrans);
-	}
+	}*/
 
 	skybox = new Skybox(skyFaces);
 
@@ -516,6 +577,19 @@ void Window::display_callback(GLFWwindow* window)
 	std::this_thread::sleep_for(std::max(std::chrono::milliseconds(0), 
 		std::chrono::milliseconds(16) - (frameTime - prevFrame)));
 	prevFrame = frameTime;
+	/*limbAng += moveVel;
+	limbAnim->M = glm::rotate(glm::mat4(1.0f), 0.8f*std::sin(limbAng), glm::vec3(1, 0, 0));
+	limbOAnim->M = glm::rotate(glm::mat4(1.0f), 0.8f*std::sin(-limbAng), glm::vec3(1, 0, 0));
+	neckAnim->M = glm::rotate(glm::mat4(1.0f), 0.2f*std::sin(-limbAng), glm::vec3(0, 0, 1));*/
+
+	curveTime += moveVel / 20;
+	std::pair<glm::vec3, glm::vec3> inter = bezier->interpolate(curveTime);
+
+	glm::vec3 up(0, 1, 0);
+	if (inter.second == glm::vec3(0, 1, 0)) {
+		up = glm::vec3(1, 0, 0);
+	}
+	Window::point.position = glm::vec3(glm::inverse(glm::lookAt(inter.first, inter.first - inter.second, up)) * glm::vec4(1.0f));
 	glBindFramebuffer(GL_FRAMEBUFFER, velocityBuffer);
 	glViewport(0, 0, Window::width, Window::height);
 
@@ -523,9 +597,11 @@ void Window::display_callback(GLFWwindow* window)
 
 	// Use the shader of programID
 	glUseProgram(velocityShader);
-	bunny->draw(velocityShader);
-	dragon->draw(velocityShader);
-	bear->draw(velocityShader);
+	trees->draw(glm::mat4(1.0f), true);
+	sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first - inter.second, up)), true);
+	//bunny->draw(velocityShader);
+	//dragon->draw(velocityShader);
+	//bear->draw(velocityShader);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, renderBuffer);
 	glViewport(0, 0, Window::width, Window::height);
@@ -537,34 +613,27 @@ void Window::display_callback(GLFWwindow* window)
 
 	// Use the shader of programID
 	glUseProgram(mainShader);
-	bunny->draw(mainShader);
-	dragon->draw(mainShader);
-	bear->draw(mainShader);
-
-	bunny->update();
-	dragon->update();
-	bear->update();
-
-	limbAng += moveVel;
-	limbAnim->M = glm::rotate(glm::mat4(1.0f), 0.8f*std::sin(limbAng), glm::vec3(1, 0, 0));
-	limbOAnim->M = glm::rotate(glm::mat4(1.0f), 0.8f*std::sin(-limbAng), glm::vec3(1, 0, 0));
-	neckAnim->M = glm::rotate(glm::mat4(1.0f), 0.2f*std::sin(-limbAng), glm::vec3(0, 0, 1));
-
-	curveTime += moveVel/20;
-	std::pair<glm::vec3, glm::vec3> inter = bezier->interpolate(curveTime);
-
-	glm::vec3 up(0, 1, 0);
-	if (inter.second == glm::vec3(0, 1, 0)) {
-		up = glm::vec3(1, 0, 0);
-	}
-
-	glUseProgram(mainShader);
+	trees->draw(glm::mat4(1.0f), true);
+	sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first - inter.second, up)), true);
+	//bunny->draw(mainShader);
+	//dragon->draw(mainShader);
+	//bear->draw(mainShader);
+	trees->update();
+	sceneGraph->update();
 	Window::normalColor = !Window::normalColor;
-	sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first-inter.second, up)));
-	sceneFloor->draw(glm::translate(glm::mat4(1.0f), glm::vec3(0, -10, 0)));
-	Window::normalColor = !Window::normalColor;
-	glDrawBuffer(GL_NONE);
+	sceneFloor->draw(glm::translate(glm::mat4(1.0f), glm::vec3(0, -10, 0)), false);
+	//bunny->update();
+	//dragon->update();
+	//bear->update();
 
+	
+	/*glUseProgram(mainShader);
+	Window::normalColor = !Window::normalColor;
+	sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first-inter.second, up)), false);
+	
+	Window::normalColor = !Window::normalColor;
+	glDrawBuffer(GL_NONE);*/
+	Window::normalColor = !Window::normalColor;
 	glEnable(GL_STENCIL_TEST);
 	glDepthMask(GL_FALSE);
 	glEnable(GL_DEPTH_CLAMP);        
@@ -576,7 +645,7 @@ void Window::display_callback(GLFWwindow* window)
 	glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_DECR_WRAP, GL_KEEP);       
 
 	glUseProgram(shadowShader);
-	sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first-inter.second, up)));
+	sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first-inter.second, up)), false);
 
 	glDisable(GL_DEPTH_CLAMP);
 	glEnable(GL_CULL_FACE);                  
@@ -593,8 +662,8 @@ void Window::display_callback(GLFWwindow* window)
 
 	P = glm::perspective(45.0f, (float)width / (float)height, 0.10f, 1005.0f);
 	glUseProgram(mainShader);
-	sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first-inter.second, up)));
-	sceneFloor->draw(glm::translate(glm::mat4(1.0f), glm::vec3(0, -10, 0)));
+	sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first-inter.second, up)), false);
+	sceneFloor->draw(glm::translate(glm::mat4(1.0f), glm::vec3(0, -10, 0)), false);
 	P = glm::perspective(45.0f, (float)width / (float)height, 0.1f, 1000.0f);
 
     glDisable(GL_BLEND);
@@ -614,12 +683,12 @@ void Window::display_callback(GLFWwindow* window)
 	//));
 	//sceneGraph->draw(glm::mat4(1.0f));
 
-	if (Window::activeLights[1]) {
+	/*if (Window::activeLights[1]) {
 		sphere->draw(mainShader);
 	}
 	if (Window::activeLights[2]) {
 		cone->draw(mainShader);
-	}
+	}*/
 
 	bezier->draw();
 
@@ -630,11 +699,13 @@ void Window::display_callback(GLFWwindow* window)
 		glUseProgram(shadowShader);
 		glDisable(GL_CULL_FACE);
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first-inter.second, up)));
+		sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first-inter.second, up)), false);
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		glEnable(GL_CULL_FACE);
 	}
 
+	glUseProgram(mainShader);
+	//sceneGraph2->draw(glm::mat4(1.0f));
 	skybox->draw();
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -686,30 +757,8 @@ void Window::key_callback(GLFWwindow* window, int key, int scancode, int action,
 			case GLFW_KEY_F3:
 				current = bear;
 				break;
-			case GLFW_KEY_S:
-				if (mods & GLFW_MOD_SHIFT) {
-					dragon->move(0, 0, 0, 1.25);
-					bunny->move(0, 0, 0, 1.25);
-					bear->move(0, 0, 0, 1.25);
-					sceneGraph->M = glm::scale(sceneGraph->M, glm::vec3(1.25,1.25,1.25));
-				} else {
-					dragon->move(0, 0, 0, 0.8);
-					bunny->move(0, 0, 0, 0.8);
-					bear->move(0, 0, 0, 0.8);
-					sceneGraph->M = glm::scale(sceneGraph->M, glm::vec3(0.8, 0.8, 0.8));
-				}
-				break;
-			case GLFW_KEY_W:
-				if (mods & GLFW_MOD_SHIFT) {
-					if (Window::spot.minDot < glm::half_pi<float>()) {
-						Window::spot.minDot += 0.05f;
-					}
-				} else {
-					if (Window::spot.minDot > 0.0f) {
-						Window::spot.minDot -= 0.05f;
-					}
-				}
-				break;
+		
+			
 			case GLFW_KEY_E:
 				if (mods & GLFW_MOD_SHIFT) {
 					if (Window::spot.dropoff > 1 / 128.0f) {
@@ -748,7 +797,48 @@ void Window::key_callback(GLFWwindow* window, int key, int scancode, int action,
 			case GLFW_KEY_5:
 				Window::mode = 5;
 				break;
+			case GLFW_KEY_W:
+				cam_pos = glm::vec3(cam_pos.x + sin(camAngle), cam_pos.y, cam_pos.z + cos(camAngle));
+				break;
+			case GLFW_KEY_A:
+				cam_pos = glm::vec3(cam_pos.x + cos(camAngle), cam_pos.y, cam_pos.z + sin(camAngle));
+				break;
+			case GLFW_KEY_S:
+				cam_pos = glm::vec3(cam_pos.x - sin(camAngle), cam_pos.y, cam_pos.z - cos(camAngle));
+				break;
+
+			case GLFW_KEY_D:
+				cam_pos = glm::vec3(cam_pos.x - cos(camAngle), cam_pos.y, cam_pos.z - sin(camAngle));
+				break;
+
 		}
+
+		cam_look_at = glm::vec3(cam_pos.x + sin(camAngle), cam_pos.y + sin(camUpAngle), cam_pos.z + cos(camAngle));
+		Window::V = glm::lookAt(cam_pos, cam_look_at, cam_up);
+	}
+	if (action == GLFW_REPEAT) {
+		switch (key) {
+		case GLFW_KEY_LEFT:
+			camAngle = camAngle + 0.05;
+			break;
+		
+		case GLFW_KEY_RIGHT:
+			camAngle = camAngle - 0.05;
+			break;
+		
+		case GLFW_KEY_UP:
+			camUpAngle = camUpAngle + 0.05;
+			break;
+
+		case GLFW_KEY_DOWN:
+			camUpAngle = camUpAngle - 0.05;
+			break;
+	}
+
+		//cam_look_at = glm::vec3(cam_pos.x + sin(camAngle), cam_pos.y+ sin(camUpAngle), cam_pos.z + cos(camAngle));
+		
+		//Window::V = glm::lookAt(cam_pos, cam_look_at, cam_up);
+		
 	}
 }
 
@@ -811,18 +901,27 @@ void Window::cursor_pos_callback(GLFWwindow * window, double posX, double posY) 
 				fixSpotlight();
 				break;
 			case 5:
-				if (glm::length(axis) < 0.001) {
+				/*if (glm::length(axis) < 0.001) {
 					return;
-				}
-				axis = glm::normalize(axis);
+				}*/
+				/*axis = glm::normalize(axis);
 				glm::mat4 camTransform = glm::inverse(glm::mat4(glm::mat3(glm::lookAt(cam_look_at, cam_pos, cam_up))));
 				camTransform[0][0] = -camTransform[0][0];
 				camTransform[0][1] = -camTransform[0][1];
 				camTransform[0][2] = -camTransform[0][2];
 				axis = glm::vec3(camTransform * glm::vec4(axis, 1.0f));
 				glm::mat4 rotator = glm::rotate(glm::mat4(1.0f), -angle, axis);
-				cam_pos = glm::vec3(rotator * glm::vec4(cam_pos, 1.0f));
-				cam_up = glm::vec3(rotator * glm::vec4(cam_up, 1.0f));
+				//cam_pos = glm::vec3(rotator * glm::vec4(cam_pos, 1.0f));
+				//cam_up = glm::vec3(rotator * glm::vec4(cam_up, 1.0f));
+				cam_look_at = cam_look_at + glm::vec3(rotator * glm::vec4(cam_look_at, 1.0f));*/
+				float diffX = startX - stopX;
+				float diffY = startY - stopY;
+				camAngle += diffX;
+				camUpAngle -= diffY;
+				if (camAngle < -360 || camAngle > 360) {
+					camAngle = 0;
+				}
+				cam_look_at = glm::vec3(cam_pos.x + sin(camAngle), cam_pos.y + sin(camUpAngle), cam_pos.z + cos(camAngle));
 				Window::V = glm::lookAt(cam_pos, cam_look_at, cam_up);
 				break;
 		}

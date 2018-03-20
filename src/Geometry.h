@@ -29,13 +29,14 @@ private:
   float angle;
 
 public:
-	Geometry(std::string, glm::vec3, glm::vec3, glm::vec3, float, GLuint, GLuint, bool);
+	Geometry(std::string, glm::vec3, glm::vec3, glm::vec3, float, GLuint, GLuint, GLuint, bool);
 	~Geometry();
 
-	void drawModel();
-	void drawShadow();
-	void draw(glm::mat4);
+	void drawVelocity();
 	void update();
+	void drawModel(bool blur);
+	void drawShadow();
+	void draw(glm::mat4, bool blur);
 	void parse(std::string);
 
 	float storeAdjacent;
@@ -48,6 +49,10 @@ public:
 	GLuint shadowShader;
 	GLuint ambianceShader;
 
+	glm::mat4 prevView;
+	glm::mat4 prevProj;
+
+	GLuint velocityShader;
 	glm::mat4 prevmodelviewproj;
 	glm::vec3 position;
 	glm::vec3 scale;
@@ -58,7 +63,10 @@ public:
 	glm::mat4 toWorld;
 	glm::mat4 normalTransform;
 	glm::mat4 rotation;
+	std::vector<Mesh> meshes;
+	std::vector<GLuint> vaos;
 
+	GLuint uVelocityNormalTransform, uVelocityMVP, uVelocityPrevMVP;
 	GLuint VBO, VB1, VAO, EBO;
 	GLuint uProjection, uModelview, uModel, uNormalTransform;
 	GLuint uViewPos, uAlbedo, uAmbRef, uSpecRef, uPhongExp, uUseNormal;
@@ -67,6 +75,7 @@ public:
 	GLuint uSpotLightPos, uSpotLightDir, uSpotLightColor, uSpotLightDrop, uSpotLightMinDot;
 	GLuint uShowSpot, uShowDir, uShowPoint;
 	GLuint uPrevMvp, uCurrentMvp;
+	GLuint uBlur;
 
 	GLuint uShadowModel, uShadowViewProject, uShadowLightPos;
 };

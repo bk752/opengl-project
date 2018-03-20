@@ -16,6 +16,7 @@ uniform mat4 model;
 uniform mat4 normalTransform;
 uniform mat4 uPrevModelViewProjectionMat;
 uniform mat4 uModelViewProjectionMat;
+uniform bool blur;
 //uniform vec3 pointPos;
 //uniform vec3 spotPos;
 
@@ -36,10 +37,15 @@ void main()
 	vec2 UV = curPos.xy/curPos.w;
     Normal = (normalTransform * vec4(normal, 1.0)).xyz;
 	vec4 velocity = curPos - prevPos;
-	if (dot(Normal, velocity.xyz) > 0) {
-		gl_Position = (2*curPos + prevPos)/3;
-	} else {
-		gl_Position = (curPos + 2*prevPos)/3; 
+	if (blur) {
+		if (dot(Normal, velocity.xyz) > 0) {
+			gl_Position = (2*curPos + prevPos)/3;
+		} else {
+			gl_Position = (curPos + 2*prevPos)/3; 
+		}
+	}
+	else {
+		gl_Position = curPos;
 	}
     // OpenGL maintains the D matrix so you only need to multiply by P, V (aka C inverse), and M
     normalColor = vec4((normalize(normal) + vec3(1, 1, 1)) / 2, 1.0f);

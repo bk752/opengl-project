@@ -18,7 +18,7 @@
 class Node
 {
 public:
-	virtual void draw(glm::mat4 c) = 0;
+	virtual void draw(glm::mat4 c, bool blur) = 0;
 	virtual void update() = 0;
 };
 

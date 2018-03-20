@@ -22,39 +22,45 @@ OBJObject::OBJObject(std::string name, glm::vec3 norm, glm::vec3 pos, glm::vec3 
 	this->specular = spec;
 	this->phongExp = phong;
 
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
-	glGenBuffers(1, &VB1);
-	glGenBuffers(1, &EBO);
+	for (int i = 0; i < meshes.size(); i++) {
+		Mesh mesh = meshes[i];
+		GLuint meshVao;
+		glGenVertexArrays(1, &meshVao);
 
-	glBindVertexArray(VAO);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), &vertices[0], GL_STATIC_DRAW);
+		vaos.push_back(meshVao);
+		glGenBuffers(1, &VBO);
+		glGenBuffers(1, &VB1);
+		glGenBuffers(1, &EBO);
 
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0,
-		3,
-		GL_FLOAT,
-		GL_FALSE,
-		sizeof(Vertex),
-		(GLvoid*)0);
+		glBindVertexArray(meshVao);
+		glBindBuffer(GL_ARRAY_BUFFER, VBO);
+		glBufferData(GL_ARRAY_BUFFER, mesh.vertices.size() * sizeof(Vertex), &(mesh.vertices)[0], GL_STATIC_DRAW);
 
-	glBindBuffer(GL_ARRAY_BUFFER, VB1);
-	glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(glm::vec3), &normals[0], GL_STATIC_DRAW);
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0,
+			3,
+			GL_FLOAT,
+			GL_FALSE,
+			sizeof(Vertex),
+			(GLvoid*)0);
 
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1,
-		3,
-		GL_FLOAT,
-		GL_FALSE,
-		sizeof(glm::vec3),
-		(GLvoid*)0);
+		glBindBuffer(GL_ARRAY_BUFFER, VB1);
+		glBufferData(GL_ARRAY_BUFFER, mesh.normals.size() * sizeof(glm::vec3), &(mesh.normals)[0], GL_STATIC_DRAW);
 
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(Triangle), &faces[0], GL_STATIC_DRAW);
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(1,
+			3,
+			GL_FLOAT,
+			GL_FALSE,
+			sizeof(glm::vec3),
+			(GLvoid*)0);
 
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh.faces.size() * sizeof(Triangle), &(mesh.faces)[0], GL_STATIC_DRAW);
+
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindVertexArray(0);
+	}
 }
 
 OBJObject::~OBJObject()
@@ -71,45 +77,72 @@ void OBJObject::assimpLoad(std::string name) {
 
 	
 }
+
+
+
+/*unsigned int textureID;
+		glGenTextures(1, &textureID);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+
+		int width, height, nrChannels;
+		for (unsigned int i = 0; i < faces.size(); i++)
+		{
+				unsigned char *data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
+				if (data)
+				{
+						glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 
+												 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data
+						);
+						stbi_image_free(data);
+			std::cout<<"cubmap loaded\n";
+				}
+				else
+				{
+						std::cout << "Cubemap texture failed to load at path: " << faces[i] << std::endl;
+						stbi_image_free(data);
+				}
+		}
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);*/
 void OBJObject::parse(std::string name) 
 {
+	float minX = 1000, minY = 1000, minZ = 1000;
+	float maxX = -1000, maxY = -1000, maxZ = -1000;
 	const aiScene* obj = aiImportFile(name.c_str(), aiProcessPreset_TargetRealtime_MaxQuality);
+
+	std::cout << "Number of textures: " << obj->mNumTextures << std::endl;
 	std::cout << name << std::endl;
 	std::cout << "Number of meshes found in file: " << obj->mNumMeshes << std::endl;
 	for (int i = 0; i < obj->mNumMeshes; i++) {
 		std::cout << "Number of vertices in mesh "<< i << ": " << obj->mMeshes[i]->mNumVertices << std::endl;
 	}
-	std::cout << std::endl;
-	std::cout << std::endl;
+	
+	
 	for (int meshI = 0; meshI < obj->mNumMeshes; meshI++) {
 		Mesh curMesh;
 		aiMesh* mesh = obj->mMeshes[meshI];
-
-		aiMaterial* mat = obj->mMaterials[mesh->mMaterialIndex];
-		aiColor4D specular;
-		aiColor4D diffuse;
-		aiColor4D ambient;
-		float shininess;
-		aiGetMaterialColor(mat, AI_MATKEY_COLOR_SPECULAR, &specular);
-		aiGetMaterialColor(mat, AI_MATKEY_COLOR_DIFFUSE, &diffuse);
-		aiGetMaterialColor(mat, AI_MATKEY_COLOR_AMBIENT, &ambient);
-		aiGetMaterialFloat(mat, AI_MATKEY_SHININESS, &shininess);
-		curMesh.ambient = glm::vec3(ambient.r, ambient.g, ambient.b);
-		curMesh.diffuse = glm::vec3(diffuse.r, diffuse.g, diffuse.b);
-		curMesh.specular = glm::vec3(specular.r, specular.g, specular.b);
-		curMesh.shininess = shininess;
 
 		for (int vertI = 0; vertI < mesh->mNumVertices; vertI++) {
 			
 			aiVector3D vertex = mesh->mVertices[vertI];
 			aiVector3D normal = mesh->mNormals[vertI];
+			
 			Vertex vert;
 			vert.x = vertex.x;
 			vert.y = vertex.y;
 			vert.z = vertex.z;
 			curMesh.vertices.push_back(vert);
 			curMesh.normals.push_back(glm::vec3(normal.x, normal.y, normal.z));
+			maxX = std::max(maxX, vert.x);
+			maxY = std::max(maxY, vert.y);
+			maxZ = std::max(maxZ, vert.z);
 
+			minX = std::min(minX, vert.x);
+			minY = std::min(minY, vert.y);
+			minZ = std::min(minZ, vert.z);
 		}
 
 		for (int faceI = 0; faceI < mesh->mNumFaces; faceI++) {
@@ -124,14 +157,28 @@ void OBJObject::parse(std::string name)
 		
 		this->meshes.push_back(curMesh);
 	}
-	this->vertices = meshes[0].vertices;
-	this->normals = meshes[0].normals;
-	this->faces = meshes[0].faces;
 
-	if (obj->mNumMeshes == 3) {
-		this->vertices = meshes[2].vertices;
-		this->normals = meshes[2].normals;
-		this->faces = meshes[2].faces;
+	float medX = (maxX + minX) / 2;
+	float medY = (maxY + minY) / 2;
+	float medZ = (maxZ + minZ) / 2;
+
+	float radX = (maxX - minX) / 2;
+	float radY = (maxY - minY) / 2;
+	float radZ = (maxZ - minZ) / 2;
+	float rad = std::max(std::max(radX, radY), radZ);
+
+	for (int i = 0; i < meshes.size(); i++) {
+		auto vertices = &(meshes[i].vertices);
+		for (int j = 0; j < vertices->size(); j++) {
+
+			vertices->at(j).x -= medX;
+			vertices->at(j).y -= medY;
+			vertices->at(j).z -= medZ;
+
+			vertices->at(j).x /= rad;
+			vertices->at(j).y /= rad;
+			vertices->at(j).z /= rad;
+		}
 	}
 
 	/*float x, y, z;
@@ -279,10 +326,14 @@ void OBJObject::draw(GLuint shaderProgram)
 	glUniform1f(glGetUniformLocation(shaderProgram, "spotLight.dropoff"), Window::spot.dropoff);
 	glUniform1f(glGetUniformLocation(shaderProgram, "spotLight.minDot"), cos(Window::spot.minDot));
 
-	glBindVertexArray(VAO);
-	//glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glDrawElements(GL_TRIANGLES, 3*faces.size(), GL_UNSIGNED_INT, 0);
-	glBindVertexArray(0);
+	for (int i = 0; i < vaos.size(); i++) {
+
+		glBindVertexArray(vaos[i]);
+		//glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		//glDrawElements(GL_TRIANGLES, 3 * faces.size(), GL_UNSIGNED_INT, 0);
+		glDrawElements(GL_TRIANGLES, 3 * meshes[i].faces.size(), GL_UNSIGNED_INT, 0);
+		glBindVertexArray(0);
+	}
 }
 
 void OBJObject::update()
