@@ -31,7 +31,11 @@ Transform *sceneFloor;
 Bezier *bezier;
 Skybox *skybox;
 Transform* trees;
-
+bool motionBlur = true;
+bool shadows = true;
+bool motionBlurDebug = false;
+bool shadowDebug = false;
+bool stretchDebug = false;
 int t = 0;
 
 // On some systems you need to change this to the absolute path
@@ -46,10 +50,10 @@ int t = 0;
 #define GEOMETRY_SHADOW_PATH "shadow.geom"
 
 // Default camera parameters
-glm::vec3 cam_pos(0.0f, -5.0f, 0.0f);		// e	| Position of camera
+glm::vec3 cam_pos(2.5f, -5.0f, 2.5f);		// e	| Position of camera
 glm::vec3 cam_look_at(0.0f, 0.0f, 0.0f);	// d	| This is where the camera looks at
 glm::vec3 cam_up(0.0f, 1.0f, 0.0f);			// up | What orientation "up" is
-
+Geometry *lantern;
 int Window::width;
 int Window::height;
 DirLight Window::dir;
@@ -65,14 +69,14 @@ glm::vec3 Window::viewPos = cam_pos;
 glm::mat4 Window::P;
 glm::mat4 Window::V;
 glm::mat4 cam_rot;
-
+glm::vec3 prevBez;
 Transform *limbAnim;
 Transform *limbOAnim;
 Transform *neckAnim;
 
 float camUpAngle;
 float camAngle;
-float moveVel = 0.4f;
+float moveVel = 0.2f;
 //float moveVel = 1.0f;
 //float moveVel = 0.2f;
 float curveTime = 0;
@@ -131,6 +135,8 @@ GLuint quad_arraybuffer;
 bool ok = false;
 GLuint velocityTexID;
 GLuint renderTexID;
+GLuint velDebugID, stretchDebugID;
+GLuint renderDebugID;
 GLuint quad_vertexPosition_modelspace;
 
 GLuint renderBuffer;
@@ -162,7 +168,7 @@ void Window::initialize_objects()
 		glm::vec3(0.3f, 0.2f, 0.1f), glm::vec3(0.1f, 0.05f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), 6.0f);
 
 	Window::dir = { glm::vec3(1.0, -1.0, 0.0), glm::vec3(1.0, 1.0, 1.0) };
-	Window::point = { glm::vec3(0.0, 2.0, 0.0), glm::vec3(1.0, 1.0, 1.0), 0.1f };
+	Window::point = { glm::vec3(0.0, 2.0, 0.0), glm::vec3(1.0, 1.0, 1.0), 0.5f };
 
 	sphere = new OBJObject("res/sphere.obj", glm::vec3(1.0f, 1.0f, 1.0f), point.position,
 		glm::vec3(0.0f, 0.0f, 0.0f), Window::point.color, glm::vec3(0.0f, 0.0f, 0.0f), 1.0f);
@@ -245,58 +251,40 @@ void Window::initialize_objects()
 	sceneGraph = new Transform(glm::mat4(1.0f));
 	
 	sceneFloor = new Transform(glm::scale(glm::mat4(1.0f), glm::vec3(100, 1, 100)));
-	Geometry *werewolf = new Geometry("res/werewolf.obj", glm::vec3(0.7f, 0.7f, 0.7f), glm::vec3(0.05f, 0.05f, 0.05f), glm::vec3(0.0f, 0.0f, 0.0f), 6.0f, mainShader, shadowShader, velocityShader, true);
+	lantern = new Geometry("res/lantern2.obj", glm::vec3(0.2f, 0.2f, 0.2f), glm::vec3(0.00f, 0.00f, 0.00f), glm::vec3(0.0f, 0.0f, 0.0f), 6.0f, mainShader, shadowShader, velocityShader, false);
+	Geometry *werewolf = new Geometry("res/werewolf.obj", glm::vec3(0.3f, 0.3f, 0.3f), glm::vec3(0.05f, 0.05f, 0.05f), glm::vec3(0.0f, 0.0f, 0.0f), 6.0f, mainShader, shadowShader, velocityShader, false);
 	Transform *scaleWolf = new Transform(glm::scale(glm::mat4(1.0f), glm::vec3(5.0, 5.0, 5.0)));
 	scaleWolf->addChild(werewolf);
+	Transform *transLamp = new Transform(glm::translate(glm::mat4(1.0f), glm::vec3(4.20, .6, 1.5)));
+	transLamp->addChild(lantern);
 
-	sceneGraph->addChild(scaleWolf);
-	Geometry *box = new Geometry("res/cube.obj", glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f), 8.0f, mainShader, shadowShader, velocityShader, true);
-	Geometry *treeObj = new Geometry("res/treenoleaves.obj", glm::vec3(0.3f, 0.2f, 0.1f), glm::vec3(0.1f, 0.05f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), 6.0f, mainShader, shadowShader, velocityShader, true);
+	Transform *down = new Transform(glm::translate(glm::mat4(1.0f), glm::vec3(0.0, -1.0, 0.0)));
+	down->addChild(scaleWolf);
+	down->addChild(transLamp);
+	sceneGraph->addChild(down);
+	Geometry *box = new Geometry("res/cube.obj", glm::vec3(0.1f, 0.2f, 0.0f), glm::vec3(0.3f, 0.6f, 0.0f), glm::vec3(0.0f, 0.00f, 0.0f), 8.0f, mainShader, shadowShader, velocityShader, false);
+	//Transform *scaleTree = new Transform(glm::scale(glm::mat4(1.0f), glm::vec3(20.0, 30.0, 20.0)));
 
-	Transform *scaleTree = new Transform(glm::scale(glm::mat4(1.0f), glm::vec3(20.0, 30.0, 20.0)));
-	scaleTree->addChild(treeObj);
+	Transform *scaleTree = new Transform(glm::scale(glm::mat4(1.0f), glm::vec3(10.0, 10.0, 10.0)));
+	for (int i = 0; i < 25; i++) {
+		float x = (float(i / 5) - 2.5) * 1.5 + (1.0f - (2 * (i % 2))*0.25);
+		float z = (float(i % 5) - 2.5) * 1.25;
+		Geometry * treeGeo = new Geometry("res/AL05y.obj", glm::vec3(0.3f, 0.2f, 0.1f), glm::vec3(0.4f, 0.2f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), 6.0f, mainShader, shadowShader, velocityShader, true);
+		Transform * rotTree = new Transform(glm::rotate(glm::mat4(1.0f), -glm::pi<float>()/2, glm::vec3(1, 0, 0)));
+		rotTree->addChild(treeGeo);
+		Transform * transTree = new Transform(glm::translate(glm::mat4(1.0), glm::vec3(x, 0, z)));
+		transTree->addChild(rotTree);
+		scaleTree->addChild(transTree);
+	}
 	
-	Transform *treeVert = new Transform(glm::translate(glm::mat4(1.0f), glm::vec3(0.0, 13.0, 0.0)));
+	Transform *treeVert = new Transform(glm::translate(glm::mat4(1.0f), glm::vec3(0.0, 0.0, 0.0)));
+	//Transform *treeVert = new Transform(glm::translate(glm::mat4(1.0f), glm::vec3(0.0, 13.0, 0.0)));
 	treeVert->addChild(scaleTree);
 
-	Transform * treeTrans = new Transform(glm::translate(glm::mat4(1.0f), glm::vec3(10.0, 0.0, 10.0)));
-	treeTrans->addChild(treeVert);
-
-	Transform * treeTrans1 = new Transform(glm::translate(glm::mat4(1.0f), glm::vec3(20.0, 0.0, 40.0)));
-	treeTrans1->addChild(treeVert);
-
-	Transform * treeTrans2 = new Transform(glm::translate(glm::mat4(1.0f), glm::vec3(20.0, 0.0, 20.0)));
-	treeTrans2->addChild(treeVert);
-
-	Transform * treeTrans3 = new Transform(glm::translate(glm::mat4(1.0f), glm::vec3(50.0, 0.0, 10.0)));
-	treeTrans3->addChild(treeVert);
-
-	Transform * treeTrans4 = new Transform(glm::translate(glm::mat4(1.0f), glm::vec3(-20.0, 0.0, -20.0)));
-	treeTrans4->addChild(treeVert);
-
-	Transform * treeTrans5 = new Transform(glm::translate(glm::mat4(1.0f), glm::vec3(-20.0, 0.0, 30.0)));
-	treeTrans5->addChild(treeVert);
-
-	Transform * treeTrans6 = new Transform(glm::translate(glm::mat4(1.0f), glm::vec3(30.0, 0.0, -10.0)));
-	treeTrans6->addChild(treeVert);
-
-	Transform * treeTrans7 = new Transform(glm::translate(glm::mat4(1.0f), glm::vec3(30.0, 0.0, -20.0)));
-	treeTrans7->addChild(treeVert);
-
-	Transform * treeTrans8 = new Transform(glm::translate(glm::mat4(1.0f), glm::vec3(30.0, 0.0, 30.0)));
-	treeTrans8->addChild(treeVert);
 
 
-	trees->addChild(treeTrans);
-	trees->addChild(treeTrans1);
-	trees->addChild(treeTrans2);
-	trees->addChild(treeTrans3);
-	trees->addChild(treeTrans4);
-	trees->addChild(treeTrans5);
-	trees->addChild(treeTrans6);
-	trees->addChild(treeTrans7);
-	trees->addChild(treeTrans8);
-
+	trees->addChild(treeVert);
+	
 	
 	sceneFloor->addChild(box);
 	//sceneGraph->addChild(box);
@@ -324,27 +312,23 @@ void Window::initialize_objects()
 	skybox = new Skybox(skyFaces);
 
 	bezier = new Bezier(
-		glm::vec3(0, 0, 0),
-		glm::vec3(10, 0, 0),
-		glm::vec3(15, 0, -10),
-		glm::vec3(10, 0, -20),
+		glm::vec3(-30, -6, 11),
+		glm::vec3(-31, -6, 11),
+		glm::vec3(39, -6, -22),
+		glm::vec3(40, -6, -22),
 		lineShader
 	);
 	bezier->addControl(
-		glm::vec3(0, 10, -30),
-		glm::vec3(0, 10, -40)
+		glm::vec3(29, -6, 22),
+		glm::vec3(30, -6, 22)
 	);
 	bezier->addControl(
-		glm::vec3(-10, 0, -10),
-		glm::vec3(-20, 0, -20)
+		glm::vec3(-10, -6, -30),
+		glm::vec3(-20, -6, -30)
 	);
 	bezier->addControl(
-		glm::vec3(-25, -5, -15),
-		glm::vec3(-30, 0, -5)
-	);
-	bezier->addControl(
-		glm::vec3(-10, 0, 0),
-		glm::vec3(0, 0, 0)
+		glm::vec3(-29, -6, 11),
+		glm::vec3(-30, -6, 11)
 	);
 	bezier->updateBuffer();
 
@@ -465,6 +449,8 @@ void Window::initialize_objects()
 	quad_vertexPosition_modelspace = glGetAttribLocation(quad_programID, "aPos");
 	velocityTexID = glGetUniformLocation(quad_programID, "velocityTexture");
 	renderTexID = glGetUniformLocation(quad_programID, "renderTexture");
+	velDebugID = glGetUniformLocation(quad_programID, "velDebug");
+	stretchDebugID = glGetUniformLocation(quad_programID, "stretchDebug");
 }
 
 // Treat this as a destructor function. Delete dynamically allocated memory here.
@@ -589,131 +575,127 @@ void Window::display_callback(GLFWwindow* window)
 	if (inter.second == glm::vec3(0, 1, 0)) {
 		up = glm::vec3(1, 0, 0);
 	}
-	Window::point.position = glm::vec3(glm::inverse(glm::lookAt(inter.first, inter.first - inter.second, up)) * glm::vec4(1.0f));
+	Window::point.position = glm::vec3(lantern->toWorld * glm::vec4(1.0f));//glm::vec3(glm::inverse(glm::lookAt(inter.first, inter.first - inter.second, up)) * glm::vec4(1.0f));
 	glBindFramebuffer(GL_FRAMEBUFFER, velocityBuffer);
 	glViewport(0, 0, Window::width, Window::height);
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	if (motionBlur) {
+		glUseProgram(velocityShader);
+		trees->draw(glm::mat4(1.0f), true);
+		sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first - inter.second, up)), true);
+	}
 	// Use the shader of programID
-	glUseProgram(velocityShader);
-	trees->draw(glm::mat4(1.0f), true);
-	sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first - inter.second, up)), true);
-	//bunny->draw(velocityShader);
-	//dragon->draw(velocityShader);
-	//bear->draw(velocityShader);
+	
 
 	glBindFramebuffer(GL_FRAMEBUFFER, renderBuffer);
 	glViewport(0, 0, Window::width, Window::height);
 
-	//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
-	//glDepthMask(GL_TRUE);
 
 	// Use the shader of programID
 	glUseProgram(mainShader);
-	trees->draw(glm::mat4(1.0f), true);
-	sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first - inter.second, up)), true);
-	//bunny->draw(mainShader);
-	//dragon->draw(mainShader);
-	//bear->draw(mainShader);
+	trees->draw(glm::mat4(1.0f), motionBlur);
+	sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first - inter.second, up)), motionBlur);
 	trees->update();
 	sceneGraph->update();
-	Window::normalColor = !Window::normalColor;
 	sceneFloor->draw(glm::translate(glm::mat4(1.0f), glm::vec3(0, -10, 0)), false);
-	//bunny->update();
-	//dragon->update();
-	//bear->update();
-
-	
-	/*glUseProgram(mainShader);
-	Window::normalColor = !Window::normalColor;
-	sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first-inter.second, up)), false);
-	
-	Window::normalColor = !Window::normalColor;
-	glDrawBuffer(GL_NONE);*/
-	Window::normalColor = !Window::normalColor;
-	glEnable(GL_STENCIL_TEST);
-	glDepthMask(GL_FALSE);
-	glEnable(GL_DEPTH_CLAMP);        
-	glDisable(GL_CULL_FACE);
-
-	glStencilFunc(GL_ALWAYS, 0, 0xff);
-
-	glStencilOpSeparate(GL_BACK, GL_KEEP, GL_INCR_WRAP, GL_KEEP);
-	glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_DECR_WRAP, GL_KEEP);       
-
-	glUseProgram(shadowShader);
-	sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first-inter.second, up)), false);
-
-	glDisable(GL_DEPTH_CLAMP);
-	glEnable(GL_CULL_FACE);                  
-
-	glDrawBuffer(GL_COLOR_ATTACHMENT0);
-
-	glStencilFunc(GL_EQUAL, 0x0, 0xFF);
-	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 
 
-    glEnable(GL_BLEND);
-    glBlendEquation(GL_FUNC_ADD);
-    glBlendFunc(GL_ONE, GL_ONE);
-
-	P = glm::perspective(45.0f, (float)width / (float)height, 0.10f, 1005.0f);
-	glUseProgram(mainShader);
-	sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first-inter.second, up)), false);
-	sceneFloor->draw(glm::translate(glm::mat4(1.0f), glm::vec3(0, -10, 0)), false);
-	P = glm::perspective(45.0f, (float)width / (float)height, 0.1f, 1000.0f);
-
-    glDisable(GL_BLEND);
-
-	glDisable(GL_STENCIL_TEST);
-	glDepthMask(GL_TRUE);
-	glUseProgram(mainShader);
-
-	//sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first-inter.second, up)));
-	//sceneGraph->draw(glm::mat4(1.0f));
-	//sceneGraph->draw(glm::translate(glm::mat4(1.0f), inter.first));
-	//sceneGraph->draw(glm::translate(glm::mat4(1.0f), inter.first) * glm::mat4(
-	//				xAxis[0], xAxis[1], xAxis[2], 0, 
-	//				yAxis[0], yAxis[1], yAxis[2], 0, 
-	//				zAxis[0], zAxis[1], zAxis[2], 0, 
-	//				0, 0, 0, 1
-	//));
-	//sceneGraph->draw(glm::mat4(1.0f));
-
-	/*if (Window::activeLights[1]) {
-		sphere->draw(mainShader);
-	}
-	if (Window::activeLights[2]) {
-		cone->draw(mainShader);
-	}*/
-
-	bezier->draw();
-
-	//sceneGraph->update();
-	//sceneFloor->update();
-
-	if (!Window::normalColor) {
-		glUseProgram(shadowShader);
+	if (shadows) {
+		glEnable(GL_STENCIL_TEST);
+		glDepthMask(GL_FALSE);
+		glEnable(GL_DEPTH_CLAMP);
 		glDisable(GL_CULL_FACE);
-		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first-inter.second, up)), false);
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+		glStencilFunc(GL_ALWAYS, 0, 0xff);
+
+		glStencilOpSeparate(GL_BACK, GL_KEEP, GL_INCR_WRAP, GL_KEEP);
+		glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_DECR_WRAP, GL_KEEP);
+
+		glUseProgram(shadowShader);
+		sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first - inter.second, up)), false);
+		trees->draw(glm::mat4(1.0f), false);
+		glDisable(GL_DEPTH_CLAMP);
 		glEnable(GL_CULL_FACE);
+
+		glDrawBuffer(GL_COLOR_ATTACHMENT0);
+
+		glStencilFunc(GL_EQUAL, 0x0, 0xFF);
+		glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+
+
+		glEnable(GL_BLEND);
+		glBlendEquation(GL_FUNC_ADD);
+		glBlendFunc(GL_ONE, GL_ONE);
+
+		P = glm::perspective(45.0f, (float)width / (float)height, 0.10f, 1005.0f);
+		glUseProgram(mainShader);
+		trees->draw(glm::mat4(1.0f), false);
+		sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first - inter.second, up)), false);
+		P = glm::perspective(45.0f, (float)width / (float)height, 0.1f, 1000.0f);
+
+		glDisable(GL_BLEND);
+
+		glDisable(GL_STENCIL_TEST);
+		glDepthMask(GL_TRUE);
+		glUseProgram(mainShader);
+
+		if (!Window::normalColor) {
+			glUseProgram(shadowShader);
+			glDisable(GL_CULL_FACE);
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+			sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first - inter.second, up)), false);
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			glEnable(GL_CULL_FACE);
+		}
 	}
-
 	glUseProgram(mainShader);
-	//sceneGraph2->draw(glm::mat4(1.0f));
-	skybox->draw();
+	//skybox->draw();
 
+	
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glViewport(0, 0, Window::width, Window::height);
+
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	if (motionBlurDebug) {
+		glViewport(Window::width / 2, 0, Window::width, Window::height);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glUseProgram(quad_programID);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, velocityTexture);
+		glUniform1i(velocityTexID, 0);
+		glUniform1i(velDebugID, true);
+		glBindVertexArray(quad_arraybuffer);
+		// Draw the triangles !
+		glDrawArrays(GL_TRIANGLES, 0, 6); // 2*3 indices starting at 0 -> 2 triangles
+		glBindVertexArray(0);
+		glfwSwapBuffers(window);
+		glViewport(0, 0, Window::width/2, Window::height);
+	}
+	else if (stretchDebug) {
+		glViewport(Window::width / 2, 0, Window::width, Window::height);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glUseProgram(quad_programID);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, renderTexture);
+		glUniform1i(renderTexID, 0);
+		glUniform1i(stretchDebugID, true);
+		glBindVertexArray(quad_arraybuffer);
+		// Draw the triangles !
+		glDrawArrays(GL_TRIANGLES, 0, 6); // 2*3 indices starting at 0 -> 2 triangles
+		glBindVertexArray(0);
+		glfwSwapBuffers(window);
+		glViewport(0, 0, Window::width / 2, Window::height);
+	}
+	else {
+		glViewport(0, 0, Window::width, Window::height);
+	}
+	
 
 	// Clear the color and depth buffers
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+	glUniform1i(stretchDebugID, false);
+	glUniform1i(velDebugID, false);
 	// Use the shader of programID
 	glUseProgram(quad_programID);
 	glActiveTexture(GL_TEXTURE0);
@@ -777,68 +759,53 @@ void Window::key_callback(GLFWwindow* window, int key, int scancode, int action,
 				Window::mode = 0;
 				break;
 			case GLFW_KEY_1:
-				Window::mode = 1;
-				Window::activeLights[1] = false;
-				Window::activeLights[2] = false;
+				motionBlur = !motionBlur;
 				break;
 			case GLFW_KEY_2:
-				Window::mode = 2;
-				Window::activeLights[1] = true;
-				Window::activeLights[2] = false;
+				shadows = !shadows;
 				break;
 			case GLFW_KEY_3:
-				Window::mode = 3;
-				Window::activeLights[1] = false;
-				Window::activeLights[2] = true;
+				motionBlurDebug = !motionBlurDebug;
+				if (motionBlurDebug) {
+					stretchDebug = false;
+				}
+				
 				break;
 			case GLFW_KEY_4:
-				Window::activeLights[0] = !Window::activeLights[0];
+				stretchDebug = !stretchDebug;
+				if (stretchDebug) {
+					motionBlurDebug = false;
+				}
+				
 				break;
 			case GLFW_KEY_5:
-				Window::mode = 5;
+				shadowDebug = !shadowDebug;
 				break;
-			case GLFW_KEY_W:
-				cam_pos = glm::vec3(cam_pos.x + sin(camAngle), cam_pos.y, cam_pos.z + cos(camAngle));
-				break;
-			case GLFW_KEY_A:
-				cam_pos = glm::vec3(cam_pos.x + cos(camAngle), cam_pos.y, cam_pos.z + sin(camAngle));
-				break;
-			case GLFW_KEY_S:
-				cam_pos = glm::vec3(cam_pos.x - sin(camAngle), cam_pos.y, cam_pos.z - cos(camAngle));
-				break;
-
-			case GLFW_KEY_D:
-				cam_pos = glm::vec3(cam_pos.x - cos(camAngle), cam_pos.y, cam_pos.z - sin(camAngle));
-				break;
-
+			
 		}
+	}
 
+	if (key == GLFW_KEY_W || key == GLFW_KEY_A || key == GLFW_KEY_S || key == GLFW_KEY_D) {
+		glm::mat4 trans;
+		if (key == GLFW_KEY_W) {
+			trans = glm::translate(glm::mat4(1.0f), glm::vec3(0.0, 0, 0.5));
+		}
+		else if (key == GLFW_KEY_S) {
+			trans = glm::translate(glm::mat4(1.0f), glm::vec3(0.0, 0, -0.5));
+		}
+		else if (key == GLFW_KEY_A) {
+			trans = glm::translate(glm::mat4(1.0f), glm::vec3(0.5, 0, 0.0));
+		}
+		else {
+			trans = glm::translate(glm::mat4(1.0f), glm::vec3(-0.5, 0, 0.0));
+		}
+		Window::V = trans * Window::V;
+		glm::mat4 cam = glm::inverse(Window::V);
+		Window::viewPos = glm::vec3(cam[3][0], cam[3][1], cam[3][2]);
+		//cam_look_at += viewPos - cam_pos;
+		cam_pos = glm::vec3(viewPos.x, cam_pos.y, viewPos.z);
 		cam_look_at = glm::vec3(cam_pos.x + sin(camAngle), cam_pos.y + sin(camUpAngle), cam_pos.z + cos(camAngle));
 		Window::V = glm::lookAt(cam_pos, cam_look_at, cam_up);
-	}
-	if (action == GLFW_REPEAT) {
-		switch (key) {
-		case GLFW_KEY_LEFT:
-			camAngle = camAngle + 0.05;
-			break;
-		
-		case GLFW_KEY_RIGHT:
-			camAngle = camAngle - 0.05;
-			break;
-		
-		case GLFW_KEY_UP:
-			camUpAngle = camUpAngle + 0.05;
-			break;
-
-		case GLFW_KEY_DOWN:
-			camUpAngle = camUpAngle - 0.05;
-			break;
-	}
-
-		//cam_look_at = glm::vec3(cam_pos.x + sin(camAngle), cam_pos.y+ sin(camUpAngle), cam_pos.z + cos(camAngle));
-		
-		//Window::V = glm::lookAt(cam_pos, cam_look_at, cam_up);
-		
 	}
 }
 

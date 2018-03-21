@@ -31,5 +31,10 @@ struct Mesh {
 	glm::vec3 specular;
 	glm::vec3 diffuse;
 	float shininess;
+}; 
+struct Mesh2 {
+	std::vector<glm::vec3> normals;
+	std::vector<glm::vec3> vertices;
+	std::vector<GLuint> faces;
 };
 #endif

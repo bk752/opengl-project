@@ -20,7 +20,7 @@ Geometry::Geometry(std::string name, glm::vec3 diff, glm::vec3 amb, glm::vec3 sp
 
 
 
-	for (int i = 0; i < meshes.size(); i++) {
+	/*for (int i = 0; i < meshes.size(); i++) {
 		Mesh mesh = meshes[i];
 		GLuint meshVao;
 		glGenVertexArrays(1, &meshVao);
@@ -58,9 +58,9 @@ Geometry::Geometry(std::string name, glm::vec3 diff, glm::vec3 amb, glm::vec3 sp
 
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glBindVertexArray(0);
-	}
+	}*/
 
-	/*glGenVertexArrays(1, &VAO);
+	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
 	glGenBuffers(1, &VB1);
 	glGenBuffers(1, &EBO);
@@ -89,7 +89,7 @@ Geometry::Geometry(std::string name, glm::vec3 diff, glm::vec3 amb, glm::vec3 sp
 		(GLvoid*)0);
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(GLuint), &faces[0], GL_STATIC_DRAW);*/
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, faces.size() * sizeof(GLuint), &faces[0], GL_STATIC_DRAW);
 
 	this->shader = program;
 	uBlur = glGetUniformLocation(shader, "blur");
@@ -147,7 +147,7 @@ void Geometry::parse(std::string name)
 	float maxX = -1000, maxY = -1000, maxZ = -1000;
 	const aiScene* obj = aiImportFile(name.c_str(), aiProcessPreset_TargetRealtime_MaxQuality);
 
-	std::cout << "Number of textures: " << obj->mNumTextures << std::endl;
+ 	std::cout << "Number of textures: " << obj->mNumTextures << std::endl;
 	std::cout << name << std::endl;
 	std::cout << "Number of meshes found in file: " << obj->mNumMeshes << std::endl;
 	for (int i = 0; i < obj->mNumMeshes; i++) {
@@ -155,8 +155,10 @@ void Geometry::parse(std::string name)
 	}
 
 
+	std::map<std::pair<GLuint, GLuint>, GLuint> edgeOpposite;
+	std::vector<GLuint> plainFaces;
 	for (int meshI = 0; meshI < obj->mNumMeshes; meshI++) {
-		Mesh curMesh;
+		//Mesh curMesh;
 		aiMesh* mesh = obj->mMeshes[meshI];
 
 		for (int vertI = 0; vertI < mesh->mNumVertices; vertI++) {
@@ -168,8 +170,8 @@ void Geometry::parse(std::string name)
 			vert.x = vertex.x;
 			vert.y = vertex.y;
 			vert.z = vertex.z;
-			curMesh.vertices.push_back(vert);
-			curMesh.normals.push_back(glm::vec3(normal.x, normal.y, normal.z));
+			vertices.push_back(glm::vec3(vertex.x, vertex.y, vertex.z));
+			normals.push_back(glm::vec3(normal.x, normal.y, normal.z));
 			maxX = std::max(maxX, vert.x);
 			maxY = std::max(maxY, vert.y);
 			maxZ = std::max(maxZ, vert.z);
@@ -180,19 +182,36 @@ void Geometry::parse(std::string name)
 		}
 
 		for (int faceI = 0; faceI < mesh->mNumFaces; faceI++) {
+			
 			Triangle tri;
 			aiFace face = mesh->mFaces[faceI];
 			int v1 = face.mIndices[0];
 			int v2 = face.mIndices[1];
 			int v3 = face.mIndices[2];
-			curMesh.faces.push_back({ { ((unsigned int)v1), ((unsigned int)v2), ((unsigned int)v3) } });
+			GLuint v[3] = { v1, v2, v3 };
+			if (storeAdjacent) {
+				for (int i = 0; i < 3; i++) {
+					plainFaces.push_back(v[i]);
+					edgeOpposite[std::pair<GLuint, GLuint>(
+						v[i], v[(i + 1) % 3])] = v[(i + 2) % 3];
+				}
+			}
+			else {
+				faces.push_back(v1);
+				faces.push_back(v2);
+				faces.push_back(v3);
+			}
+
+
+
+			//curMesh.faces.push_back({ { ((unsigned int)v1), ((unsigned int)v2), ((unsigned int)v3) } });
 
 		}
 
-		this->meshes.push_back(curMesh);
+		//this->meshes.push_back(curMesh);
 	}
 
-	float medX = (maxX + minX) / 2;
+	/*float medX = (maxX + minX) / 2;
 	float medY = (maxY + minY) / 2;
 	float medZ = (maxZ + minZ) / 2;
 
@@ -213,7 +232,7 @@ void Geometry::parse(std::string name)
 			vertices->at(j).y /= rad;
 			vertices->at(j).z /= rad;
 		}
-	}
+	}*/
 	/*float x, y, z;
 	float r = -1;
 	float g = -1;
@@ -269,23 +288,24 @@ void Geometry::parse(std::string name)
 		} else {
 			fscanf(fp, "%*[^\n]\n", NULL);
 		}
-	}
+	}*/
+
 	for (int face = 0; face < plainFaces.size() / 3; face++) { 
 		GLuint *v = &plainFaces[3 * face];
 		for (int i = 0; i < 3; i++) {
-			faces.push_back(v[i] - 1);
+			faces.push_back(v[i]);
 			auto opposite = edgeOpposite.find(std::pair<GLuint, GLuint>(
 							v[(i + 1) % 3], v[i]));
 			if (opposite == edgeOpposite.end()) {
-				faces.push_back(v[(i + 2) % 3] - 1);
-				std::cout<<"No opposite\n";
+				faces.push_back(v[(i + 2) % 3]);
+				//std::cout<<"No opposite\n";
 			} else {
-				faces.push_back((opposite->second) - 1);
+				faces.push_back((opposite->second));
 			}
 		}
 	}
 	std::cout<<faces.size()<<'\n';
-	fclose(fp);
+	//fclose(fp);
 
 	float medX = (maxX + minX) / 2;
 	float medY = (maxY + minY) / 2;
@@ -305,16 +325,16 @@ void Geometry::parse(std::string name)
 		vertices[i].x /= rad;
 		vertices[i].y /= rad;
 		vertices[i].z /= rad;
-	}*/
+	}
 }
 
 void Geometry::update() {
 	/*this->normalTransform = glm::mat4(glm::mat3(this->toWorld));
 	this->normalTransform = glm::inverse(glm::transpose(this->normalTransform));
 	glm::mat4 modelview = Window::V * toWorld;*/
-	prevView = Window::V;
-	prevProj = Window::P;
-	//prevmodelviewproj = Window::P * Window::V * this->toWorld;
+	//prevView = Window::V;
+	//prevProj = Window::P;
+	prevmodelviewproj = Window::P * Window::V * this->toWorld;
 }
 void Geometry::draw(glm::mat4 c, bool blur) {
 	this->toWorld = c;
@@ -341,18 +361,28 @@ void Geometry::drawVelocity() {
 	// Push a save state onto the matrix stack, and multiply in the toWorld matrix
 	glm::mat4 modelview = Window::V * this->toWorld;
 	glm::mat4 modelviewproj = Window::P * Window::V * this->toWorld;
-	prevmodelviewproj = prevProj * prevView * this->toWorld;
+	//prevmodelviewproj = prevProj * prevView * this->toWorld;
 	glUniformMatrix4fv(uVelocityMVP, 1, GL_FALSE, &prevmodelviewproj[0][0]);
 	glUniformMatrix4fv(uVelocityPrevMVP, 1, GL_FALSE, &modelviewproj[0][0]);
 	glUniformMatrix4fv(uVelocityNormalTransform, 1, GL_FALSE, &normalTransform[0][0]);
-	for (int i = 0; i < vaos.size(); i++) {
+
+	glBindVertexArray(VAO);
+
+	if (storeAdjacent) {
+		glDrawElements(GL_TRIANGLES_ADJACENCY, faces.size(), GL_UNSIGNED_INT, 0);
+	}
+	else {
+		glDrawElements(GL_TRIANGLES, faces.size(), GL_UNSIGNED_INT, 0);
+	}
+	glBindVertexArray(0);
+	/*for (int i = 0; i < vaos.size(); i++) {
 
 		glBindVertexArray(vaos[i]);
 		//glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		//glDrawElements(GL_TRIANGLES, 3 * faces.size(), GL_UNSIGNED_INT, 0);
 		glDrawElements(GL_TRIANGLES, 3 * meshes[i].faces.size(), GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);
-	}
+	}*/
 }
 
 void Geometry::drawModel(bool blur) 
@@ -369,7 +399,7 @@ void Geometry::drawModel(bool blur)
 	glm::mat4 modelview = Window::V * this->toWorld;
 	glm::mat4 modelviewproj = Window::P * Window::V * this->toWorld;
 	//prevmodelviewproj = modelviewproj;
-	prevmodelviewproj = prevProj * prevView * this->toWorld;
+	//prevmodelviewproj = prevProj * prevView * this->toWorld;
 
 
 	glUniformMatrix4fv(uPrevMvp, 1, GL_FALSE, &prevmodelviewproj[0][0]);
@@ -407,23 +437,23 @@ void Geometry::drawModel(bool blur)
 	glUniform1f(uSpotLightDrop, Window::spot.dropoff);
 	glUniform1f(uSpotLightMinDot, cos(Window::spot.minDot));
 
-	/*glBindVertexArray(VAO);
+	glBindVertexArray(VAO);
 
 	if (storeAdjacent) {
 		glDrawElements(GL_TRIANGLES_ADJACENCY, faces.size(), GL_UNSIGNED_INT, 0);
 	} else {
 		glDrawElements(GL_TRIANGLES, faces.size(), GL_UNSIGNED_INT, 0);
 	}
-	glBindVertexArray(0);*/
+	glBindVertexArray(0);
 
-	for (int i = 0; i < vaos.size(); i++) {
+	/*for (int i = 0; i < vaos.size(); i++) {
 
 		glBindVertexArray(vaos[i]);
 		//glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		//glDrawElements(GL_TRIANGLES, 3 * faces.size(), GL_UNSIGNED_INT, 0);
 		glDrawElements(GL_TRIANGLES, 3 * meshes[i].faces.size(), GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);
-	}
+	}*/
 }
 
 
@@ -436,8 +466,8 @@ void Geometry::drawShadow() {
 		glUniform3fv(uShadowLightPos, 1, &Window::point.position[0]);
 
 		glBindVertexArray(VAO);
-		//glDrawElements(GL_TRIANGLES_ADJACENCY, faces.size(), GL_UNSIGNED_INT, 0);
-		glDrawElements(GL_TRIANGLES, faces.size(), GL_UNSIGNED_INT, 0);
+		glDrawElements(GL_TRIANGLES_ADJACENCY, faces.size(), GL_UNSIGNED_INT, 0);
+		//glDrawElements(GL_TRIANGLES, faces.size(), GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);
 	}
 }
