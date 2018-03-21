@@ -596,10 +596,13 @@ void Window::display_callback(GLFWwindow* window)
 
 	// Use the shader of programID
 	glUseProgram(mainShader);
-	trees->draw(glm::mat4(1.0f), motionBlur);
-	sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first - inter.second, up)), motionBlur);
-	trees->update();
-	sceneGraph->update();
+	if (!shadowDebug) {
+		trees->draw(glm::mat4(1.0f), motionBlur);
+		sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first - inter.second, up)), motionBlur);
+		trees->update();
+		sceneGraph->update();
+	}
+	
 	sceneFloor->draw(glm::translate(glm::mat4(1.0f), glm::vec3(0, -10, 0)), false);
 
 
@@ -632,8 +635,11 @@ void Window::display_callback(GLFWwindow* window)
 
 		P = glm::perspective(45.0f, (float)width / (float)height, 0.10f, 1005.0f);
 		glUseProgram(mainShader);
-		trees->draw(glm::mat4(1.0f), false);
-		sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first - inter.second, up)), false);
+		if (!shadowDebug) {
+			trees->draw(glm::mat4(1.0f), false);
+			sceneGraph->draw(glm::inverse(glm::lookAt(inter.first, inter.first - inter.second, up)), false);
+		}
+		
 		P = glm::perspective(45.0f, (float)width / (float)height, 0.1f, 1000.0f);
 
 		glDisable(GL_BLEND);
@@ -652,7 +658,7 @@ void Window::display_callback(GLFWwindow* window)
 		}
 	}
 	glUseProgram(mainShader);
-	//skybox->draw();
+	skybox->draw();
 
 	
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -768,6 +774,7 @@ void Window::key_callback(GLFWwindow* window, int key, int scancode, int action,
 				motionBlurDebug = !motionBlurDebug;
 				if (motionBlurDebug) {
 					stretchDebug = false;
+					shadowDebug = false;
 				}
 				
 				break;
@@ -775,11 +782,16 @@ void Window::key_callback(GLFWwindow* window, int key, int scancode, int action,
 				stretchDebug = !stretchDebug;
 				if (stretchDebug) {
 					motionBlurDebug = false;
+					shadowDebug = false;
 				}
 				
 				break;
 			case GLFW_KEY_5:
 				shadowDebug = !shadowDebug;
+				if (shadowDebug) {
+					motionBlurDebug = false;
+					stretchDebug = false;
+				}
 				break;
 			
 		}
