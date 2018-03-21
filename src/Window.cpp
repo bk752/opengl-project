@@ -76,7 +76,7 @@ Transform *neckAnim;
 
 float camUpAngle;
 float camAngle;
-float moveVel = 0.2f;
+float moveVel = 0.05f;
 //float moveVel = 1.0f;
 //float moveVel = 0.2f;
 float curveTime = 0;
@@ -168,7 +168,7 @@ void Window::initialize_objects()
 		glm::vec3(0.3f, 0.2f, 0.1f), glm::vec3(0.1f, 0.05f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), 6.0f);
 
 	Window::dir = { glm::vec3(1.0, -1.0, 0.0), glm::vec3(1.0, 1.0, 1.0) };
-	Window::point = { glm::vec3(0.0, 2.0, 0.0), glm::vec3(1.0, 1.0, 1.0), 0.5f };
+	Window::point = { glm::vec3(0.0, 2.0, 0.0), glm::vec3(1.0, 1.0, 1.0), 0.2f };
 
 	sphere = new OBJObject("res/sphere.obj", glm::vec3(1.0f, 1.0f, 1.0f), point.position,
 		glm::vec3(0.0f, 0.0f, 0.0f), Window::point.color, glm::vec3(0.0f, 0.0f, 0.0f), 1.0f);
@@ -265,20 +265,23 @@ void Window::initialize_objects()
 	Geometry *box = new Geometry("res/cube.obj", glm::vec3(0.1f, 0.2f, 0.0f), glm::vec3(0.3f, 0.6f, 0.0f), glm::vec3(0.0f, 0.00f, 0.0f), 8.0f, mainShader, shadowShader, velocityShader, false);
 	//Transform *scaleTree = new Transform(glm::scale(glm::mat4(1.0f), glm::vec3(20.0, 30.0, 20.0)));
 
-	Transform *scaleTree = new Transform(glm::scale(glm::mat4(1.0f), glm::vec3(10.0, 10.0, 10.0)));
-	for (int i = 0; i < 25; i++) {
+	Transform *scaleTree = new Transform(glm::scale(glm::mat4(1.0f), glm::vec3(10.0, 15.0, 10.0)));
+	for (int i = 0; i < 23; i++) {
 		float x = (float(i / 5) - 2.5) * 1.5 + (1.0f - (2 * (i % 2))*0.25);
 		float z = (float(i % 5) - 2.5) * 1.25;
-		Geometry * treeGeo = new Geometry("res/AL05y.obj", glm::vec3(0.3f, 0.2f, 0.1f), glm::vec3(0.4f, 0.2f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), 6.0f, mainShader, shadowShader, velocityShader, true);
-		Transform * rotTree = new Transform(glm::rotate(glm::mat4(1.0f), -glm::pi<float>()/2, glm::vec3(1, 0, 0)));
+		Geometry * treeGeo = new Geometry("res/MapleTree.obj", glm::vec3(0.3f, 0.2f, 0.1f), glm::vec3(0.4f, 0.2f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), 6.0f, mainShader, shadowShader, velocityShader, true);
+		//Transform * rotTree = new Transform(glm::rotate(glm::mat4(1.0f), -glm::pi<float>()/2, glm::vec3(1, 0, 0)));
+		Transform * rotTree = new Transform(glm::mat4(1.0f));
 		rotTree->addChild(treeGeo);
 		Transform * transTree = new Transform(glm::translate(glm::mat4(1.0), glm::vec3(x, 0, z)));
 		transTree->addChild(rotTree);
 		scaleTree->addChild(transTree);
 	}
+
+	//Geometry * leafyTree = new Geometry("res/treenoleavestriangle.obj", glm::vec3(0.3f, 0.2f, 0.1f), glm::vec3(0.4f, 0.2f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), 6.0f, mainShader, shadowShader, velocityShader, true);
 	
-	Transform *treeVert = new Transform(glm::translate(glm::mat4(1.0f), glm::vec3(0.0, 0.0, 0.0)));
-	//Transform *treeVert = new Transform(glm::translate(glm::mat4(1.0f), glm::vec3(0.0, 13.0, 0.0)));
+	//Transform *treeVert = new Transform(glm::translate(glm::mat4(1.0f), glm::vec3(0.0, 0.0, 0.0)));
+	Transform *treeVert = new Transform(glm::translate(glm::mat4(1.0f), glm::vec3(0.0, 5.0, 0.0)));
 	treeVert->addChild(scaleTree);
 
 
@@ -676,7 +679,7 @@ void Window::display_callback(GLFWwindow* window)
 		// Draw the triangles !
 		glDrawArrays(GL_TRIANGLES, 0, 6); // 2*3 indices starting at 0 -> 2 triangles
 		glBindVertexArray(0);
-		glfwSwapBuffers(window);
+		//glfwSwapBuffers(window);
 		glViewport(0, 0, Window::width/2, Window::height);
 	}
 	else if (stretchDebug) {
@@ -691,7 +694,7 @@ void Window::display_callback(GLFWwindow* window)
 		// Draw the triangles !
 		glDrawArrays(GL_TRIANGLES, 0, 6); // 2*3 indices starting at 0 -> 2 triangles
 		glBindVertexArray(0);
-		glfwSwapBuffers(window);
+		//glfwSwapBuffers(window);
 		glViewport(0, 0, Window::width / 2, Window::height);
 	}
 	else {

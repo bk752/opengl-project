@@ -326,6 +326,12 @@ void Geometry::parse(std::string name)
 		vertices[i].y /= rad;
 		vertices[i].z /= rad;
 	}
+
+	/*if (!name.compare("res/treenoleavestriangle.obj")) {
+		for (int i = 0; i < vertices.size(); i++) {
+			vertices[i] = vertices[i] + normals[i];
+		}
+	}*/
 }
 
 void Geometry::update() {
